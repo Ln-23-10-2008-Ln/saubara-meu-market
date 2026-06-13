@@ -332,6 +332,13 @@ export default function AdminDashboard() {
   const [productSearch, setProductSearch] = useState("");
   const [subStatusFilter, setSubStatusFilter] = useState<string>("todos");
 
+  // ── Open support tickets badge (moved UP — must be before early returns) ──
+  const [openTickets, setOpenTickets] = useState(0);
+  useEffect(() => {
+    seedDemoTickets();
+    setOpenTickets(getTicketStats().aberto);
+  }, [tab]); // refresh count whenever tab changes
+
   // Aguardar verificação server-side antes de renderizar
   if (!authChecked) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0f172a" }}>
@@ -411,13 +418,6 @@ export default function AdminDashboard() {
   const trialStores = sellers.filter(s => s.subscription.status === "trial" && s.approvalStatus === "approved" && !s.suspended).length;
   const suspendedStores = sellers.filter(s => s.approvalStatus === "suspended" || s.subscription.status === "suspended" || s.subscription.status === "expired").length;
   const pendingApproval = sellers.filter(s => s.approvalStatus === "pending").length;
-
-  // ── Open support tickets badge ────────────────────────────────────────────
-  const [openTickets, setOpenTickets] = useState(0);
-  useEffect(() => {
-    seedDemoTickets();
-    setOpenTickets(getTicketStats().aberto);
-  }, [tab]); // refresh count whenever tab changes
 
   // ── Filtered sellers ──────────────────────────────────────────────────────
 

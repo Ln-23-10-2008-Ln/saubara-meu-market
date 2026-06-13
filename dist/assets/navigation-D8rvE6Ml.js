@@ -1,0 +1,1 @@
+import{u as t,r as a}from"./router-Du3qhO0b.js";function e(o="/"){const[,s]=t();return{back:a.useCallback(()=>{window.history.length>2?window.history.back():s(o)},[o,s])}}function r(o,s="/"){window.history.length>2?window.history.back():o(s)}export{r as s,e as u};

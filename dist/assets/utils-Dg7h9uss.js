@@ -1,0 +1,2 @@
+function s(t,n,e,a){const o=e?` da *${e}*`:"",r=a?`
+🔗 ${a}`:"",i=encodeURIComponent(`Olá! Vi o produto *${n}*${o} no *Saubara Meu Market* e gostaria de consultar disponibilidade e preço. 😊${r}`);return`https://wa.me/${t}?text=${i}`}function u(t,n){const e=encodeURIComponent(`Olá *${n}*! Vi a sua loja no *Saubara Meu Market* e gostaria de mais informações. 😊`);return`https://wa.me/${t}?text=${e}`}function c(t){return t.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}function p(t){return t.toFixed(1)}export{p as a,s as b,u as c,c as f};
