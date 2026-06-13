@@ -1,0 +1,6 @@
+node_modules/
+dist/
+packages/server/.env
+*.log
+.DS_Store
+.turso/

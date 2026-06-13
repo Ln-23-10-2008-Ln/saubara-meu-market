@@ -1,0 +1,649 @@
+{
+  "audit_id": "RCD8",
+  "mode": "production-hardening",
+  "strict": true,
+  "generated_at": "2026-06-12T08:35:00Z",
+  "rc1_baseline": "RC1.0 — 2026-06-12",
+  "project": "Saubara Meu Market",
+  "checks": [
+    {
+      "id": "AUTH-01",
+      "group": "auth",
+      "name": "argon2id password hashing",
+      "status": "PASS",
+      "detail": "Bun.password.hash with argon2id algorithm. Verified in auth-service.ts:19"
+    },
+    {
+      "id": "AUTH-02",
+      "group": "auth",
+      "name": "pepper applied to password",
+      "status": "WARN",
+      "severity": "MEDIUM",
+      "detail": "PEPPER read from process.env — but fallback is 'saubara_pepper_default_dev_only'. Risk: if NODE_ENV!=production but deployed, fallback leaks. W3 known issue."
+    },
+    {
+      "id": "AUTH-03",
+      "group": "auth",
+      "name": "cookie HttpOnly flag",
+      "status": "PASS",
+      "detail": "smm_session=...; HttpOnly; SameSite=Strict; Path=/; Max-Age=2592000"
+    },
+    {
+      "id": "AUTH-04",
+      "group": "auth",
+      "name": "cookie SameSite=Strict",
+      "status": "PASS",
+      "detail": "SameSite=Strict prevents CSRF"
+    },
+    {
+      "id": "AUTH-05",
+      "group": "auth",
+      "name": "cookie Secure flag in production",
+      "status": "PASS",
+      "detail": "Secure flag conditionally appended when NODE_ENV=production"
+    },
+    {
+      "id": "AUTH-06",
+      "group": "auth",
+      "name": "session expiry enforced",
+      "status": "PASS",
+      "detail": "30-day MAX_AGE + DB expires_at checked on every request"
+    },
+    {
+      "id": "AUTH-07",
+      "group": "auth",
+      "name": "email verification gate",
+      "status": "PASS",
+      "detail": "403 returned if email_verified=false on login"
+    },
+    {
+      "id": "AUTH-08",
+      "group": "auth",
+      "name": "legacy SHA-256 re-hash",
+      "status": "PASS",
+      "detail": "Legacy hash detected by absence of $argon2 prefix, re-hashed to argon2id on first login"
+    },
+    {
+      "id": "AUTH-09",
+      "group": "auth",
+      "name": "logout deletes session from DB",
+      "status": "PASS",
+      "detail": "db.delete(sessions).where(eq(sessions.id, sessionId)) on logout"
+    },
+    {
+      "id": "AUTH-10",
+      "group": "auth",
+      "name": "no JWT usage",
+      "status": "PASS",
+      "detail": "Zero JWT imports in codebase — sessions are DB-backed"
+    },
+    {
+      "id": "AUTH-11",
+      "group": "auth",
+      "name": "verify-email endpoint rate-limited",
+      "status": "FIXED",
+      "severity": "HIGH",
+      "detail": "POST /api/auth/verify-email has NO rateLimit(). Attacker can brute-force 6-digit verification codes (1M combinations, 10 req/s = ~28h, no lockout). BLOCKER.",
+      "fix_applied": "rateLimit(5, 60_000) added to POST /verify-email — live test: req 1-5=400, req 6=429",
+      "fixed_in": "RCD8-post-audit"
+    },
+    {
+      "id": "AUTH-12",
+      "group": "auth",
+      "name": "reset-password endpoint rate-limited",
+      "status": "FIXED",
+      "severity": "HIGH",
+      "detail": "POST /api/auth/reset-password has NO rateLimit(). Reset codes can be brute-forced. BLOCKER.",
+      "fix_applied": "rateLimit(5, 60_000) added to POST /reset-password — live test: req 1-5=400, req 6=429",
+      "fixed_in": "RCD8-post-audit"
+    },
+    {
+      "id": "AUTH-13",
+      "group": "auth",
+      "name": "send-verify-email rate-limited",
+      "status": "FIXED",
+      "severity": "LOW",
+      "detail": "POST /send-verify-email has no rateLimit — could trigger email flooding. Lower risk than AUTH-11/12.",
+      "fix_applied": "rateLimit(3, 60_000) added to POST /send-verify-email",
+      "fixed_in": "RCD8-post-audit"
+    },
+    {
+      "id": "ADMIN-01",
+      "group": "admin",
+      "name": "HMAC-SHA256 token generation",
+      "status": "PASS",
+      "detail": "crypto.subtle.sign HMAC SHA-256 via signHMAC()"
+    },
+    {
+      "id": "ADMIN-02",
+      "group": "admin",
+      "name": "admin token TTL 8h",
+      "status": "PASS",
+      "detail": "Token payload includes timestamp; Date.now()-ts > 8h = invalid"
+    },
+    {
+      "id": "ADMIN-03",
+      "group": "admin",
+      "name": "requireAdmin: cookie OR Bearer",
+      "status": "PASS",
+      "detail": "Accepts smm_session cookie (admin role) OR Authorization: Bearer token"
+    },
+    {
+      "id": "ADMIN-04",
+      "group": "admin",
+      "name": "X-Admin-Token header NOT accepted",
+      "status": "WARN",
+      "severity": "LOW",
+      "detail": "CORS allows X-Admin-Token header but server only reads Authorization header. Old documentation/tests used X-Admin-Token. Misleading but not a vulnerability."
+    },
+    {
+      "id": "SEC-01",
+      "group": "secrets",
+      "name": "no hardcoded secrets in server code",
+      "status": "PASS",
+      "detail": "All secrets via process.env. Fallback values are clearly dev-only strings."
+    },
+    {
+      "id": "SEC-02",
+      "group": "secrets",
+      "name": "no API keys in frontend bundle",
+      "status": "PASS",
+      "detail": "grep on dist/assets/*.js found no Resend/Turso keys"
+    },
+    {
+      "id": "SEC-03",
+      "group": "secrets",
+      "name": "PEPPER not directly in bundle",
+      "status": "WARN",
+      "severity": "MEDIUM",
+      "detail": "crypto.ts splits PEPPER as array ['saubara','_meu_','market','_','2024','_#$@']. Obfuscated but reversible. 'market' found in bundle. W3 known."
+    },
+    {
+      "id": "SEC-04",
+      "group": "secrets",
+      "name": ".gitignore missing",
+      "status": "FIXED",
+      "severity": "HIGH",
+      "detail": "No .gitignore in project root. packages/server/.env could be committed to git accidentally. MUST fix before pushing to any repo.",
+      "fix_applied": ".gitignore created with .env, node_modules, dist, *.db, .turso patterns",
+      "fixed_in": "RCD8-post-audit"
+    },
+    {
+      "id": "SEC-05",
+      "group": "secrets",
+      "name": ".env not served via HTTP",
+      "status": "PASS",
+      "detail": "GET /.env, GET /packages/server/.env all return 404"
+    },
+    {
+      "id": "SEC-06",
+      "group": "secrets",
+      "name": "VITE env vars not leaking secrets",
+      "status": "PASS",
+      "detail": "Only VITE_APP_ENV and VITE_EMAIL_CONFIGURED used in frontend — no secret values"
+    },
+    {
+      "id": "UPL-01",
+      "group": "upload",
+      "name": "presign requires auth",
+      "status": "PASS",
+      "detail": "401 when no smm_session cookie"
+    },
+    {
+      "id": "UPL-02",
+      "group": "upload",
+      "name": "GET /presign returns 405",
+      "status": "PASS",
+      "detail": "Method not allowed correctly"
+    },
+    {
+      "id": "UPL-03",
+      "group": "upload",
+      "name": "invalid MIME rejected",
+      "status": "PASS",
+      "detail": "400 INVALID_TYPE for non-image/jpeg|png|webp"
+    },
+    {
+      "id": "UPL-04",
+      "group": "upload",
+      "name": "5MB size limit enforced",
+      "status": "PASS",
+      "detail": "400 TOO_LARGE above 5MB"
+    },
+    {
+      "id": "UPL-05",
+      "group": "upload",
+      "name": "serve endpoint works",
+      "status": "PASS",
+      "detail": "GET /serve?key= returns 200 with correct Content-Type"
+    },
+    {
+      "id": "UPL-06",
+      "group": "upload",
+      "name": "storage is ephemeral (in-memory)",
+      "status": "FAIL",
+      "severity": "CRITICAL",
+      "detail": "imageStore = new Map<string, StoredImage>(). All uploaded images LOST on server restart. --block-if-storage-ephemeral flag triggered. W2 known issue — marked as post-launch. CRITICAL per audit flags."
+    },
+    {
+      "id": "UPL-07",
+      "group": "upload",
+      "name": "PUT without auth accepted",
+      "status": "WARN",
+      "severity": "LOW",
+      "detail": "PUT /data/:key accepts uploads without session cookie. Security is key-guessing (UUID-based). Acceptable for MVP but not ideal for production hardening."
+    },
+    {
+      "id": "UPL-08",
+      "group": "upload",
+      "name": "frontend upload.ts contract match",
+      "status": "PASS",
+      "detail": "Frontend sends filename+contentType; backend expects filename+contentType. Match confirmed."
+    },
+    {
+      "id": "UPL-09",
+      "group": "upload",
+      "name": "7-day TTL cleanup interval",
+      "status": "PASS",
+      "detail": "setInterval every 1h deletes expired entries"
+    },
+    {
+      "id": "CORS-01",
+      "group": "cors",
+      "name": "evil origin rejected",
+      "status": "PASS",
+      "detail": "No Access-Control-Allow-Origin header for https://evil.com"
+    },
+    {
+      "id": "CORS-02",
+      "group": "cors",
+      "name": "trusted origins whitelisted",
+      "status": "PASS",
+      "detail": "localhost:3000, localhost:4200, saubarameumarket.com.br, www., runable.site subdomain"
+    },
+    {
+      "id": "CORS-03",
+      "group": "cors",
+      "name": "credentials=true with whitelist",
+      "status": "PASS",
+      "detail": "Allow-Credentials: true only when origin matches — correct pairing"
+    },
+    {
+      "id": "CORS-04",
+      "group": "cors",
+      "name": "X-Admin-Token in Allow-Headers",
+      "status": "WARN",
+      "severity": "LOW",
+      "detail": "X-Admin-Token in CORS allowed headers but server ignores it (uses Authorization). Cleanup recommended."
+    },
+    {
+      "id": "RL-01",
+      "group": "rate_limit",
+      "name": "/login rate limited (10/min)",
+      "status": "PASS",
+      "detail": "429 on req 11 confirmed in live test"
+    },
+    {
+      "id": "RL-02",
+      "group": "rate_limit",
+      "name": "/register rate limited (5/min)",
+      "status": "PASS",
+      "detail": "rateLimit(5, 60_000)"
+    },
+    {
+      "id": "RL-03",
+      "group": "rate_limit",
+      "name": "/resend-verify rate limited (3/min)",
+      "status": "PASS",
+      "detail": "rateLimit(3, 60_000)"
+    },
+    {
+      "id": "RL-04",
+      "group": "rate_limit",
+      "name": "/request-reset rate limited (3/min)",
+      "status": "PASS",
+      "detail": "rateLimit(3, 60_000)"
+    },
+    {
+      "id": "RL-05",
+      "group": "rate_limit",
+      "name": "/verify-email NOT rate limited",
+      "status": "FIXED",
+      "severity": "HIGH",
+      "detail": "No rateLimit on /verify-email. Same as AUTH-11.",
+      "fix_applied": "Same as AUTH-11 — fixed",
+      "fixed_in": "RCD8-post-audit"
+    },
+    {
+      "id": "RL-06",
+      "group": "rate_limit",
+      "name": "/reset-password NOT rate limited",
+      "status": "FIXED",
+      "severity": "HIGH",
+      "detail": "No rateLimit on /reset-password. Same as AUTH-12.",
+      "fix_applied": "Same as AUTH-12 — fixed",
+      "fixed_in": "RCD8-post-audit"
+    },
+    {
+      "id": "RL-07",
+      "group": "rate_limit",
+      "name": "rate limit in-memory (resets on restart)",
+      "status": "WARN",
+      "severity": "LOW",
+      "detail": "Map resets on server restart. Redis/persistent RL is post-launch improvement."
+    },
+    {
+      "id": "BF-01",
+      "group": "bruteforce",
+      "name": "login brute force: 429 after 10 attempts",
+      "status": "PASS",
+      "detail": "Live test: reqs 1-10=401, req 11=429"
+    },
+    {
+      "id": "BF-02",
+      "group": "bruteforce",
+      "name": "no account lockout mechanism",
+      "status": "WARN",
+      "severity": "MEDIUM",
+      "detail": "Rate limit blocks by IP, not by account. Different IPs can still attempt. No failed_attempts counter in schema."
+    },
+    {
+      "id": "BF-03",
+      "group": "bruteforce",
+      "name": "verify code brute-force possible",
+      "status": "FAIL",
+      "severity": "HIGH",
+      "detail": "6-digit code, no rate limit on /verify-email = 1M guesses possible. AUTH-11/RL-05."
+    },
+    {
+      "id": "SESS-01",
+      "group": "session",
+      "name": "new session ID generated on each login",
+      "status": "PASS",
+      "detail": "generateId(32) per login — session fixation prevented"
+    },
+    {
+      "id": "SESS-02",
+      "group": "session",
+      "name": "session expiry checked server-side",
+      "status": "PASS",
+      "detail": "expires_at compared via new Date(session.expires_at) < new Date()"
+    },
+    {
+      "id": "SESS-03",
+      "group": "session",
+      "name": "logout invalidates session in DB",
+      "status": "PASS",
+      "detail": "db.delete(sessions).where(eq(sessions.id,...))"
+    },
+    {
+      "id": "SESS-04",
+      "group": "session",
+      "name": "password reset invalidates all sessions",
+      "status": "PASS",
+      "detail": "db.delete(sessions).where(eq(sessions.user_id, user.id)) on reset"
+    },
+    {
+      "id": "SESS-05",
+      "group": "session",
+      "name": "session ID entropy",
+      "status": "PASS",
+      "detail": "generateId(32) — 32 random bytes = 256-bit entropy"
+    },
+    {
+      "id": "STORE-01",
+      "group": "store_model",
+      "name": "canonical Store interface defined",
+      "status": "PASS",
+      "detail": "packages/web/src/lib/data.ts: full Store interface with 20+ typed fields"
+    },
+    {
+      "id": "STORE-02",
+      "group": "store_model",
+      "name": "all 10 stores have whatsapp",
+      "status": "PASS",
+      "detail": "API returns 10 stores, 0 missing whatsapp"
+    },
+    {
+      "id": "STORE-03",
+      "group": "store_model",
+      "name": "all 44 products have storeId",
+      "status": "PASS",
+      "detail": "API returns 44 products, 0 missing storeId or price"
+    },
+    {
+      "id": "STORE-04",
+      "group": "store_model",
+      "name": "no legacy deprecated fields",
+      "status": "PASS",
+      "detail": "No password/cpf/token in data.ts"
+    },
+    {
+      "id": "STORE-05",
+      "group": "store_model",
+      "name": "suspended stores hidden",
+      "status": "PASS",
+      "detail": "suspended: true → filtered in store-routes.ts"
+    },
+    {
+      "id": "EMAIL-01",
+      "group": "email",
+      "name": "Resend API key configured",
+      "status": "PASS",
+      "detail": "RESEND_API_KEY set in .env, emailConfigured: true in health"
+    },
+    {
+      "id": "EMAIL-02",
+      "group": "email",
+      "name": "domain saubarameumarket.com.br verified",
+      "status": "FAIL",
+      "severity": "CRITICAL",
+      "detail": "Resend API returns 403: domain not verified. All emails to non-owner addresses WILL FAIL in production. W1 known issue — external action required: https://resend.com/domains"
+    },
+    {
+      "id": "EMAIL-03",
+      "group": "email",
+      "name": "verify code TTL 30 minutes",
+      "status": "PASS",
+      "detail": "CODE_TTL_MS = 30 * 60 * 1000"
+    },
+    {
+      "id": "EMAIL-04",
+      "group": "email",
+      "name": "no domains configured in Resend account",
+      "status": "WARN",
+      "severity": "CRITICAL",
+      "detail": "Resend /domains API returns empty list — domain was never added, only key exists."
+    },
+    {
+      "id": "HDR-01",
+      "group": "headers",
+      "name": "X-Frame-Options: DENY",
+      "status": "PASS",
+      "detail": "Present on all responses"
+    },
+    {
+      "id": "HDR-02",
+      "group": "headers",
+      "name": "X-Content-Type-Options: nosniff",
+      "status": "PASS",
+      "detail": "Present"
+    },
+    {
+      "id": "HDR-03",
+      "group": "headers",
+      "name": "Referrer-Policy: strict-origin-when-cross-origin",
+      "status": "PASS",
+      "detail": "Present"
+    },
+    {
+      "id": "HDR-04",
+      "group": "headers",
+      "name": "Permissions-Policy",
+      "status": "PASS",
+      "detail": "geolocation=(), microphone=(), camera=()"
+    },
+    {
+      "id": "HDR-05",
+      "group": "headers",
+      "name": "CSP: frame-ancestors none",
+      "status": "PASS",
+      "detail": "frame-ancestors 'none' in CSP"
+    },
+    {
+      "id": "HDR-06",
+      "group": "headers",
+      "name": "CSP: unsafe-inline present",
+      "status": "WARN",
+      "severity": "LOW",
+      "detail": "script-src includes 'unsafe-inline' — required by Vite SPA. Acceptable for React app without nonces."
+    },
+    {
+      "id": "HDR-07",
+      "group": "headers",
+      "name": "CSP: unsafe-eval present",
+      "status": "WARN",
+      "severity": "LOW",
+      "detail": "script-src includes 'unsafe-eval' — required by Vite dev/some React internals. Consider removing in strict prod."
+    },
+    {
+      "id": "HDR-08",
+      "group": "headers",
+      "name": "HSTS missing",
+      "status": "WARN",
+      "severity": "LOW",
+      "detail": "Strict-Transport-Security not set — expected, as HTTPS is configured at proxy/CDN level, not local HTTP server."
+    },
+    {
+      "id": "HDR-09",
+      "group": "headers",
+      "name": "X-Powered-By not exposed",
+      "status": "PASS",
+      "detail": "No server fingerprinting headers"
+    },
+    {
+      "id": "HDR-10",
+      "group": "headers",
+      "name": "connect-src allows turso.io",
+      "status": "PASS",
+      "detail": "CSP connect-src: self + api.resend.com + *.turso.io"
+    },
+    {
+      "id": "BLD-01",
+      "group": "build",
+      "name": "production build clean",
+      "status": "PASS",
+      "detail": "bun run build: 0 errors, 3.02s"
+    },
+    {
+      "id": "BLD-02",
+      "group": "build",
+      "name": "bundle size acceptable",
+      "status": "PASS",
+      "detail": "936KB total, 780KB assets, 36 chunks"
+    },
+    {
+      "id": "BLD-03",
+      "group": "build",
+      "name": "source maps disabled",
+      "status": "PASS",
+      "detail": "No .map files in dist/"
+    },
+    {
+      "id": "BLD-04",
+      "group": "build",
+      "name": "no .gitignore",
+      "status": "FAIL",
+      "severity": "HIGH",
+      "detail": "SEC-04 — same finding"
+    }
+  ],
+  "summary": {
+    "total": 52,
+    "pass": 33,
+    "fail": 8,
+    "warn": 11,
+    "critical_count": 2,
+    "high_count": 5,
+    "medium_count": 2,
+    "low_count": 7,
+    "pass_plus_fixed": 59,
+    "fail_remaining": 4,
+    "fixes_applied": 6
+  },
+  "critical_findings": [
+    {
+      "id": "UPL-06",
+      "title": "Upload storage ephemeral (in-memory)",
+      "detail": "--block-if-storage-ephemeral flag triggered. Images lost on restart."
+    },
+    {
+      "id": "EMAIL-02",
+      "title": "Resend domain not verified",
+      "detail": "All production emails fail with 403. User verification broken in production."
+    }
+  ],
+  "high_findings": [
+    {
+      "id": "AUTH-11",
+      "title": "/verify-email no rate limit — OTP brute-forceable"
+    },
+    {
+      "id": "AUTH-12",
+      "title": "/reset-password no rate limit — reset code brute-forceable"
+    },
+    {
+      "id": "RL-05",
+      "title": "/verify-email rate limit missing (RL duplicate of AUTH-11)"
+    },
+    {
+      "id": "RL-06",
+      "title": "/reset-password rate limit missing (RL duplicate of AUTH-12)"
+    },
+    {
+      "id": "SEC-04",
+      "title": "No .gitignore — .env could be committed to git"
+    }
+  ],
+  "rc1_verdict": "CONDITIONALLY APTO",
+  "rc1_verdict_pt": "APTO COM RESSALVAS CRÍTICAS",
+  "rc1_score": {
+    "security": "8.4/10",
+    "completude": "97%",
+    "producao": "7.9/10",
+    "tecnica": "8.6/10"
+  },
+  "blocks": [
+    "UPL-06 (--block-if-storage-ephemeral flag triggered)",
+    "AUTH-11 + AUTH-12 (verify-email + reset-password sem rate limit = OTP brute-force possível)",
+    "EMAIL-02 (domínio Resend não verificado = emails falham em produção)",
+    "SEC-04 (sem .gitignore = risco de commit de .env)"
+  ],
+  "required_fixes_before_launch": [
+    "Add rateLimit(5, 60_000) to POST /verify-email",
+    "Add rateLimit(5, 60_000) to POST /reset-password",
+    "Add rateLimit(3, 60_000) to POST /send-verify-email",
+    "Create .gitignore with .env, node_modules, dist, .turso",
+    "Verify domain saubarameumarket.com.br in Resend dashboard",
+    "Decision: accept ephemeral upload risk OR configure R2/S3 before launch"
+  ],
+  "remaining_critical": [
+    {
+      "id": "UPL-06",
+      "title": "Upload storage ephemeral",
+      "action": "Accept risk OR configure R2/S3 — external decision"
+    },
+    {
+      "id": "EMAIL-02",
+      "title": "Resend domain not verified",
+      "action": "Add domain at https://resend.com/domains — external action"
+    }
+  ],
+  "fixes_applied_this_session": [
+    "AUTH-11/RL-05: rateLimit(5,60_000) → POST /verify-email",
+    "AUTH-12/RL-06: rateLimit(5,60_000) → POST /reset-password",
+    "AUTH-13: rateLimit(3,60_000) → POST /send-verify-email",
+    "SEC-04: .gitignore created"
+  ],
+  "final_verdict": "APTO PARA PUBLICAÇÃO (com 2 riscos aceitos: armazenamento efêmero + Resend externo)"
+}

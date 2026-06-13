@@ -1,0 +1,19 @@
+{
+  "name": "saubara-meu-market",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"bun run --cwd packages/server dev\" \"bun run --cwd packages/web dev\"",
+    "build": "bun run --cwd packages/web build",
+    "start": "bun run --cwd packages/server start",
+    "db:push": "bun run --cwd packages/server db:push",
+    "db:studio": "bun run --cwd packages/server db:studio"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

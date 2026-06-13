@@ -1,0 +1,39 @@
+<!DOCTYPE html><html lang="pt-BR"><head>
+		<script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+		<script type="module" src="/@vite/client"></script>
+
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="icon" href="/favicon.ico">
+
+		<!-- SEO Primary -->
+		<title>Saubara Meu Market — Seu mercado local online</title>
+		<meta name="description" content="Compre dos comerciantes locais de Saubara. Produtos frescos, farmácias, mercados e muito mais com entrega em até 24h pelo WhatsApp.">
+		<meta name="robots" content="index, follow">
+		<link rel="canonical" href="https://saubarameumarket.com.br/">
+
+		<!-- Open Graph / WhatsApp -->
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://saubarameumarket.com.br/">
+		<meta property="og:title" content="Saubara Meu Market — Seu mercado local online">
+		<meta property="og:description" content="Compre dos comerciantes locais de Saubara. Produtos frescos, farmácias, mercados e muito mais com entrega em até 24h pelo WhatsApp.">
+		<meta property="og:image" content="https://saubarameumarket.com.br/og-image.jpg">
+		<meta property="og:locale" content="pt_BR">
+		<meta property="og:site_name" content="Saubara Meu Market">
+
+		<!-- Twitter / X -->
+		<meta name="twitter:card" content="summary_large_image">
+		<meta name="twitter:title" content="Saubara Meu Market — Seu mercado local online">
+		<meta name="twitter:description" content="Compre dos comerciantes locais de Saubara com entrega em até 24h.">
+		<meta name="twitter:image" content="https://saubarameumarket.com.br/og-image.jpg">
+	<script defer="" src="/runable.js" data-hostname="2h29k6bo75w9w6ga85n9k-website" data-url="https://r.lilstts.com/events"></script></head>
+	<body>
+		<div id="root"></div>
+		<script type="module" src="/src/web/main.tsx?t=1781139165763"></script>
+	
+
+</body></html>
