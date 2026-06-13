@@ -13,6 +13,7 @@ import { uploadRoutes } from "./routes/upload-routes";
 import { sellerProducts } from "./routes/seller-product-routes";
 import { orderRoutes } from "./routes/order-routes";
 import { applySecurityHeaders, applyCORS } from "./middleware/security";
+import { libsql } from "./db/client";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 
@@ -68,6 +69,17 @@ if (IS_PROD && existsSync(DIST)) {
     app.use("/logo.svg",    serveStatic({ root: PUBLIC }));
   }
 }
+
+// ─── Turso keep-alive (evita ECONNRESET em conexões idle) ────────────────────
+// Turso fecha conexões WebSocket ociosas após ~4 min.
+// Um ping a cada 3 min mantém a conexão viva e evita 500 no primeiro request.
+setInterval(async () => {
+  try {
+    await libsql.execute("SELECT 1");
+  } catch {
+    // reconecta silenciosamente na próxima query real
+  }
+}, 3 * 60 * 1000);
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 const port = parseInt(process.env.PORT ?? "3000", 10);
