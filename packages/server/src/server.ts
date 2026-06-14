@@ -92,3 +92,4 @@ export default {
   port,
   fetch: app.fetch,
 };
+// v1.1-cors-fix Sun Jun 14 08:44:06 UTC 2026
