@@ -52,11 +52,21 @@ const ALLOWED_ORIGINS = [
   "https://saubarameumarket.com.br",
   "https://www.saubarameumarket.com.br",
   "https://presumptuous-postgraduate753.runable.site",
+  "https://web-production-b5f2b1.up.railway.app",
 ];
+
+function isOriginAllowed(origin: string): boolean {
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  // Railway deploys: *.up.railway.app
+  if (/^https:\/\/[a-zA-Z0-9-]+\.up\.railway\.app$/.test(origin)) return true;
+  // Runable previews: *.runable.site
+  if (/^https:\/\/[a-zA-Z0-9-]+\.runable\.site$/.test(origin)) return true;
+  return false;
+}
 
 export function applyCORS(c: Context): void {
   const origin = c.req.header("origin") ?? "";
-  if (ALLOWED_ORIGINS.includes(origin)) {
+  if (isOriginAllowed(origin)) {
     c.header("Access-Control-Allow-Origin", origin);
     c.header("Vary", "Origin");
   }
