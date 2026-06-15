@@ -1,5 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs_22"]
+
+[phases.install]
+cmds = ["bun install --frozen-lockfile"]
+
 [phases.build]
-cmds = ["bun install", "bun run build"]
+cmds = []
 
 [start]
 cmd = "bun run packages/server/src/server.ts"
