@@ -1080,9 +1080,19 @@ export function adminUpdateUser(id: string, patch: Partial<StoredUser>): void {
 // ─── API admin helpers — S2.3 ─────────────────────────────────────────────────
 
 /** Busca estatísticas do dashboard admin via Turso. */
+function adminHeaders(): HeadersInit {
+  const token = sessionStorage.getItem("saubara_admin_auth");
+  return token
+    ? { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
+    : { "Content-Type": "application/json" };
+}
+
 export async function fetchAdminStats(): Promise<AdminUserStats | null> {
   try {
-    const res = await fetch("/api/admin/stats", { credentials: "include" });
+    const res = await fetch("/api/admin/stats", {
+      credentials: "include",
+      headers: adminHeaders(),
+    });
     if (!res.ok) return null;
     const json = await res.json() as { success: boolean; data?: AdminUserStats };
     return json.success && json.data ? json.data : null;
@@ -1107,7 +1117,10 @@ export async function fetchAdminUsers(opts?: {
     if (opts?.approval) params.set("approval", opts.approval);
     if (opts?.search)   params.set("search",   opts.search);
 
-    const res = await fetch(`/api/admin/users?${params.toString()}`, { credentials: "include" });
+    const res = await fetch(`/api/admin/users?${params.toString()}`, {
+      credentials: "include",
+      headers: adminHeaders(),
+    });
     if (!res.ok) return null;
     const json = await res.json() as { success: boolean; data?: any };
     if (!json.success || !json.data) return null;
@@ -1163,7 +1176,7 @@ export async function apiAdminUpdateUser(
     const res = await fetch(`/api/admin/users/${id}`, {
       method:      "PATCH",
       credentials: "include",
-      headers:     { "Content-Type": "application/json" },
+      headers:     adminHeaders(),
       body:        JSON.stringify(patch),
     });
     const json = await res.json() as { success: boolean };
