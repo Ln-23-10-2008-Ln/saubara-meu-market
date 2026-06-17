@@ -4,3 +4,4 @@ packages/server/.env
 *.log
 .DS_Store
 .turso/
+.railway.env

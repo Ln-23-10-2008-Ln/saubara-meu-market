@@ -1,6 +1,40 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Component } from "react";
+import type { ReactNode, ErrorInfo } from "react";
 import { AdminReports } from "./admin-reports";
 import AdminSupport from "./admin-support";
+
+// ─── ErrorBoundary para capturar erros de runtime no admin ───────────────────
+class AdminErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null; info: string }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { error: null, info: "" };
+  }
+  override componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[AdminDashboard] Runtime error:", error, info);
+    this.setState({ error, info: info.componentStack ?? "" });
+  }
+  override render() {
+    if (this.state.error) {
+      return (
+        <div style={{ minHeight: "100vh", background: "#1a1a2e", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px", fontFamily: "monospace" }}>
+          <div style={{ background: "#fee2e2", borderRadius: "16px", padding: "28px 32px", maxWidth: "800px", width: "100%" }}>
+            <h2 style={{ color: "#991b1b", margin: "0 0 12px", fontSize: "18px" }}>❌ Erro no painel admin</h2>
+            <pre style={{ background: "#fff", borderRadius: "8px", padding: "12px", fontSize: "12px", color: "#333", overflowX: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+              {this.state.error.toString()}
+            </pre>
+            <pre style={{ background: "#fff", borderRadius: "8px", padding: "12px", fontSize: "11px", color: "#555", overflowX: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all", marginTop: "8px", maxHeight: "200px", overflow: "auto" }}>
+              {this.state.info}
+            </pre>
+            <button onClick={() => window.location.reload()} style={{ marginTop: "16px", padding: "10px 20px", background: "#0f3460", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontSize: "14px" }}>
+              Recarregar
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { useLocation } from "wouter";
 import {
   CATEGORY_META,
@@ -117,12 +151,14 @@ function buildRealDataFallback() {
 /** Alias para compatibilidade de código que ainda usa buildRealData() */
 const buildRealData = buildRealDataFallback;
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("pt-BR");
+function fmtDate(iso: string | undefined | null) {
+  if (!iso) return "—";
+  try { return new Date(iso).toLocaleDateString("pt-BR"); } catch { return "—"; }
 }
 
-function fmtDateShort(iso: string) {
-  return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+function fmtDateShort(iso: string | undefined | null) {
+  if (!iso) return "—";
+  try { return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }); } catch { return "—"; }
 }
 
 const STATUS_META: Record<string, { label: string; bg: string; text: string; dot: string }> = {
@@ -237,7 +273,7 @@ async function verifyTokenWithServer(): Promise<boolean> {
   }
 }
 
-export default function AdminDashboard() {
+function AdminDashboardInner() {
   const [, navigate] = useLocation();
   const [authed, setAuthed] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
@@ -414,36 +450,36 @@ export default function AdminDashboard() {
   const totalClients = clients.length;
   const totalProducts = products.length;
   const activeProducts = products.filter(p => p.active).length;
-  const activeStoresCount = sellers.filter(s => s.approvalStatus === "approved" && !s.suspended && (s.subscription.status === "active" || s.subscription.status === "trial")).length;
-  const trialStores = sellers.filter(s => s.subscription.status === "trial" && s.approvalStatus === "approved" && !s.suspended).length;
-  const suspendedStores = sellers.filter(s => s.approvalStatus === "suspended" || s.subscription.status === "suspended" || s.subscription.status === "expired").length;
+  const activeStoresCount = sellers.filter(s => s.approvalStatus === "approved" && !s.suspended && (s.subscription?.status === "active" || s.subscription?.status === "trial")).length;
+  const trialStores = sellers.filter(s => s.subscription?.status === "trial" && s.approvalStatus === "approved" && !s.suspended).length;
+  const suspendedStores = sellers.filter(s => s.approvalStatus === "suspended" || s.subscription?.status === "suspended" || s.subscription?.status === "expired").length;
   const pendingApproval = sellers.filter(s => s.approvalStatus === "pending").length;
 
   // ── Filtered sellers ──────────────────────────────────────────────────────
 
   const filteredSellers = sellers.filter(s => {
     const q = sellerSearch.toLowerCase();
-    const matchSearch = !q || s.name.toLowerCase().includes(q) || s.storeName.toLowerCase().includes(q) || s.email.toLowerCase().includes(q) || s.cpf.includes(q);
+    const matchSearch = !q || (s.name||"").toLowerCase().includes(q) || (s.storeName||"").toLowerCase().includes(q) || (s.email||"").toLowerCase().includes(q) || (s.cpf||"").includes(q);
     const matchStatus = sellerStatusFilter === "todos"
       || sellerStatusFilter === s.approvalStatus
-      || (sellerStatusFilter === "trial"     && s.approvalStatus === "approved" && !s.suspended && s.subscription.status === "trial")
-      || (sellerStatusFilter === "active"    && s.approvalStatus === "approved" && !s.suspended && s.subscription.status === "active")
-      || (sellerStatusFilter === "expired"   && s.approvalStatus === "approved" && !s.suspended && s.subscription.status === "expired");
+      || (sellerStatusFilter === "trial"     && s.approvalStatus === "approved" && !s.suspended && s.subscription?.status === "trial")
+      || (sellerStatusFilter === "active"    && s.approvalStatus === "approved" && !s.suspended && s.subscription?.status === "active")
+      || (sellerStatusFilter === "expired"   && s.approvalStatus === "approved" && !s.suspended && s.subscription?.status === "expired");
     return matchSearch && matchStatus;
   });
 
   const filteredClients = clients.filter(c => {
     const q = clientSearch.toLowerCase();
-    return !q || c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) || c.phone.includes(q);
+    return !q || (c.name||"").toLowerCase().includes(q) || (c.email||"").toLowerCase().includes(q) || (c.phone||"").includes(q);
   });
 
   const filteredProducts = products.filter(p => {
     const q = productSearch.toLowerCase();
-    return !q || p.name.toLowerCase().includes(q) || p.storeName.toLowerCase().includes(q);
+    return !q || (p.name||"").toLowerCase().includes(q) || (p.storeName||"").toLowerCase().includes(q);
   });
 
   const filteredSubs = sellers.filter(s => {
-    const status = s.suspended ? "suspended" : s.subscription.status;
+    const status = s.suspended ? "suspended" : (s.subscription?.status ?? "trial");
     return subStatusFilter === "todos" || status === subStatusFilter;
   });
 
@@ -638,7 +674,7 @@ export default function AdminDashboard() {
                               borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center",
                               color: "white", fontWeight: 700, fontSize: "14px", flexShrink: 0,
                             }}>
-                              {u.name.charAt(0).toUpperCase()}
+                              {(u.name||"?").charAt(0).toUpperCase()}
                             </div>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontWeight: 600, fontSize: "13px", color: "#1a1a1a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.name}</div>
@@ -670,11 +706,11 @@ export default function AdminDashboard() {
                 <div style={S.card}>
                   <div style={{ padding: "16px 20px", borderBottom: "1px solid #f0f0f0", fontWeight: 700, fontSize: "14px", color: "#1a1a1a" }}>🏪 Últimos comerciantes</div>
                   {[...sellers].sort((a,b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime()).slice(0,5).map(s => {
-                    const status = s.suspended ? "suspended" : s.subscription.status;
+                    const status = s.suspended ? "suspended" : (s.subscription?.status ?? "trial");
                     return (
                       <div key={s.id} style={{ padding: "12px 20px", borderBottom: "1px solid #f8f8f8", display: "flex", alignItems: "center", gap: "12px" }}>
                         <div style={{ width: "34px", height: "34px", background: "linear-gradient(135deg, #FF8A50, #e06030)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700, fontSize: "14px", flexShrink: 0 }}>
-                          {s.storeName.charAt(0)}
+                          {(s.storeName||"?").charAt(0)}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, fontSize: "13px", color: "#1a1a1a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.storeName}</div>
@@ -691,9 +727,9 @@ export default function AdminDashboard() {
                   <div style={{ padding: "16px 20px", borderBottom: "1px solid #f0f0f0", fontWeight: 700, fontSize: "14px", color: "#1a1a1a" }}>💳 Status das assinaturas</div>
                   <div style={{ padding: "20px" }}>
                     {[
-                      { key: "trial",     label: "Período gratuito", count: sellers.filter(s => s.subscription.status === "trial" && !s.suspended).length },
-                      { key: "active",    label: "Ativas",           count: sellers.filter(s => s.subscription.status === "active" && !s.suspended).length },
-                      { key: "expired",   label: "Vencidas",         count: sellers.filter(s => s.subscription.status === "expired" && !s.suspended).length },
+                      { key: "trial",     label: "Período gratuito", count: sellers.filter(s => s.subscription?.status === "trial" && !s.suspended).length },
+                      { key: "active",    label: "Ativas",           count: sellers.filter(s => s.subscription?.status === "active" && !s.suspended).length },
+                      { key: "expired",   label: "Vencidas",         count: sellers.filter(s => s.subscription?.status === "expired" && !s.suspended).length },
                       { key: "suspended", label: "Suspensas",        count: sellers.filter(s => s.suspended).length },
                     ].map(item => {
                       const m = STATUS_META[item.key];
@@ -767,8 +803,8 @@ export default function AdminDashboard() {
                     </thead>
                     <tbody>
                       {filteredSellers.map(s => {
-                        const subStatus = s.suspended ? "suspended" : s.subscription.status;
-                        const days = subscriptionDaysRemaining(s.subscription);
+                        const subStatus = s.suspended ? "suspended" : (s.subscription?.status ?? "trial");
+                        const days = subscriptionDaysRemaining(s.subscription ?? { status: "trial", registeredAt: new Date().toISOString(), trialEndsAt: new Date().toISOString(), expiresAt: new Date().toISOString() });
                         const cat = CATEGORY_META[s.storeCategory];
                         const APPROVAL_META: Record<string, { label: string; color: string; bg: string }> = {
                           pending:   { label: "⏳ Aguardando aprovação", color: "#92400e", bg: "#fef3c7" },
@@ -782,7 +818,7 @@ export default function AdminDashboard() {
                             <td style={S.td}>
                               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                                 <div style={{ width: "36px", height: "36px", background: "linear-gradient(135deg, #FF8A50, #e06030)", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700, fontSize: "14px", flexShrink: 0 }}>
-                                  {s.storeName.charAt(0)}
+                                  {(s.storeName||"?").charAt(0)}
                                 </div>
                                 <div>
                                   <div style={{ fontWeight: 600, color: "#1a1a1a", fontSize: "13px" }}>{s.storeName}</div>
@@ -848,7 +884,7 @@ export default function AdminDashboard() {
                                 {s.approvalStatus === "suspended" && (
                                   <button onClick={() => reactivateSeller(s.id)} style={S.btn("white", "#0F9D8A")}>↩ Reativar</button>
                                 )}
-                                {s.approvalStatus === "approved" && (s.suspended || s.subscription.status === "expired") && (
+                                {s.approvalStatus === "approved" && (s.suspended || s.subscription?.status === "expired") && (
                                   <button onClick={() => reactivateSeller(s.id)} style={S.btn("white", "#0F9D8A")}>↩ Reativar</button>
                                 )}
                               </div>
@@ -894,7 +930,7 @@ export default function AdminDashboard() {
                           <td style={S.td}>
                             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                               <div style={{ width: "34px", height: "34px", background: "linear-gradient(135deg, #0F9D8A, #0B7A6E)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700, fontSize: "14px", flexShrink: 0 }}>
-                                {c.name.charAt(0)}
+                                {(c.name||"?").charAt(0)}
                               </div>
                               <div>
                                 <div style={{ fontWeight: 600, color: "#1a1a1a", fontSize: "13px" }}>{c.name}</div>
@@ -981,7 +1017,7 @@ export default function AdminDashboard() {
                             <td style={S.td}><span style={{ fontWeight: 600 }}>{p.name}</span></td>
                             <td style={S.td}><span style={{ fontSize: "12px", color: "#555" }}>{p.storeName}</span></td>
                             <td style={S.td}>{cat ? `${cat.icon} ${cat.label}` : p.category}</td>
-                            <td style={S.td}><span style={{ fontWeight: 700, color: "#0F9D8A" }}>R$ {p.price.toFixed(2).replace(".", ",")}</span></td>
+                            <td style={S.td}><span style={{ fontWeight: 700, color: "#0F9D8A" }}>R$ {(p.price ?? 0).toFixed(2).replace(".", ",")}</span></td>
                             <td style={S.td}>
                               <span style={{ padding: "3px 10px", borderRadius: "20px", fontSize: "11px", fontWeight: 700, background: p.active ? "#dcfce7" : "#f3f4f6", color: p.active ? "#166534" : "#6b7280" }}>
                                 {p.active ? "Ativo" : "Inativo"}
@@ -1020,9 +1056,9 @@ export default function AdminDashboard() {
               {/* summary cards */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px", marginBottom: "20px" }}>
                 {[
-                  { key: "trial",     label: "Período gratuito", count: sellers.filter(s => s.subscription.status === "trial" && !s.suspended).length },
-                  { key: "active",    label: "Ativas",           count: sellers.filter(s => s.subscription.status === "active" && !s.suspended).length },
-                  { key: "expired",   label: "Vencidas",         count: sellers.filter(s => s.subscription.status === "expired" && !s.suspended).length },
+                  { key: "trial",     label: "Período gratuito", count: sellers.filter(s => s.subscription?.status === "trial" && !s.suspended).length },
+                  { key: "active",    label: "Ativas",           count: sellers.filter(s => s.subscription?.status === "active" && !s.suspended).length },
+                  { key: "expired",   label: "Vencidas",         count: sellers.filter(s => s.subscription?.status === "expired" && !s.suspended).length },
                   { key: "suspended", label: "Suspensas",        count: sellers.filter(s => s.suspended).length },
                 ].map(item => {
                   const m = STATUS_META[item.key];
@@ -1052,17 +1088,17 @@ export default function AdminDashboard() {
                     </thead>
                     <tbody>
                       {filteredSubs.map(s => {
-                        const status = s.suspended ? "suspended" : s.subscription.status;
-                        const days = subscriptionDaysRemaining(s.subscription);
+                        const status = s.suspended ? "suspended" : (s.subscription?.status ?? "trial");
+                        const days = subscriptionDaysRemaining(s.subscription ?? { status: "trial", registeredAt: new Date().toISOString(), trialEndsAt: new Date().toISOString(), expiresAt: new Date().toISOString() });
                         return (
                           <tr key={s.id}>
                             <td style={S.td}>
                               <div style={{ fontWeight: 600, fontSize: "13px", color: "#1a1a1a" }}>{s.storeName}</div>
                               <div style={{ fontSize: "11px", color: "#888" }}>{s.name}</div>
                             </td>
-                            <td style={S.td}><span style={{ fontSize: "12px" }}>{fmtDateShort(s.subscription.registeredAt)}</span></td>
-                            <td style={S.td}><span style={{ fontSize: "12px" }}>{fmtDateShort(s.subscription.trialEndsAt)}</span></td>
-                            <td style={S.td}><span style={{ fontSize: "12px", fontWeight: 600 }}>{fmtDateShort(s.subscription.expiresAt)}</span></td>
+                            <td style={S.td}><span style={{ fontSize: "12px" }}>{fmtDateShort(s.subscription?.registeredAt)}</span></td>
+                            <td style={S.td}><span style={{ fontSize: "12px" }}>{fmtDateShort(s.subscription?.trialEndsAt)}</span></td>
+                            <td style={S.td}><span style={{ fontSize: "12px", fontWeight: 600 }}>{fmtDateShort(s.subscription?.expiresAt)}</span></td>
                             <td style={S.td}>
                               {status === "suspended" ? (
                                 <span style={{ color: "#9ca3af", fontSize: "12px" }}>—</span>
@@ -1078,7 +1114,7 @@ export default function AdminDashboard() {
                                 {s.approvalStatus === "approved" && !s.suspended && (
                                   <button onClick={() => suspendSeller(s.id)} style={S.btn("white", "#e53935")}>⛔ Suspender</button>
                                 )}
-                                {(s.approvalStatus === "suspended" || (s.approvalStatus === "approved" && s.subscription.status === "expired")) && (
+                                {(s.approvalStatus === "suspended" || (s.approvalStatus === "approved" && s.subscription?.status === "expired")) && (
                                   <button onClick={() => reactivateSeller(s.id)} style={S.btn("white", "#0F9D8A")}>↩ Reativar</button>
                                 )}
                               </div>
@@ -1357,5 +1393,13 @@ export default function AdminDashboard() {
         );
       })()}
     </div>
+  );
+}
+
+export default function AdminDashboard() {
+  return (
+    <AdminErrorBoundary>
+      <AdminDashboardInner />
+    </AdminErrorBoundary>
   );
 }
