@@ -49,8 +49,8 @@ export default function AdminSupport() {
     if (filterCat !== "all" && t.category !== filterCat) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
-      if (!t.id.toLowerCase().includes(q) && !t.name.toLowerCase().includes(q) &&
-          !t.subject.toLowerCase().includes(q) && !t.email.toLowerCase().includes(q)) return false;
+      if (!(t.id ?? "").toLowerCase().includes(q) && !(t.name ?? "").toLowerCase().includes(q) &&
+          !(t.subject ?? "").toLowerCase().includes(q) && !(t.email ?? "").toLowerCase().includes(q)) return false;
     }
     return true;
   });
@@ -167,7 +167,7 @@ export default function AdminSupport() {
                         <div style={{ fontSize: "11px", color: "#888" }}>{t.name} · {t.email}</div>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "5px" }}>
                           <span style={{ fontSize: "10px", color: "#aaa", fontFamily: "monospace" }}>{t.id}</span>
-                          <span style={{ fontSize: "10px", color: "#bbb" }}>{timeAgo(t.updatedAt)} {t.responses.length > 0 ? `· ${t.responses.length} resp.` : ""}</span>
+                          <span style={{ fontSize: "10px", color: "#bbb" }}>{timeAgo(t.updatedAt)} {(t.responses ?? []).length > 0 ? `· ${(t.responses ?? []).length} resp.` : ""}</span>
                         </div>
                       </div>
                     </div>
@@ -238,10 +238,10 @@ export default function AdminSupport() {
             </div>
 
             {/* Thread */}
-            {selected.responses.length > 0 && (
+            {(selected.responses ?? []).length > 0 && (
               <div style={{ marginBottom: "14px" }}>
-                <div style={{ fontSize: "11px", fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: "8px" }}>Histórico ({selected.responses.length}):</div>
-                {selected.responses.map((r) => (
+                <div style={{ fontSize: "11px", fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: "8px" }}>Histórico ({(selected.responses ?? []).length}):</div>
+                {(selected.responses ?? []).map((r) => (
                   <div key={r.id} style={{ background: r.from === "admin" ? "#e3f2fd" : "#f0faf9", borderRadius: "10px", padding: "10px 12px", marginBottom: "6px", borderLeft: `3px solid ${r.from === "admin" ? "#1565C0" : "#0F9D8A"}` }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
                       <span style={{ fontSize: "11px", fontWeight: 700, color: r.from === "admin" ? "#1565C0" : "#0F9D8A" }}>{r.authorName}</span>

@@ -452,21 +452,30 @@ function AdminDashboardInner() {
     setNoteModal({ open: false, mode: "reject", id: "" });
   };
 
+  // ── Debug breadcrumb (Railway) ──────────────────────────────────────────
+  useEffect(() => {
+    console.log("[Admin] tab=", tab, "sellers=", sellers?.length ?? 0, "clients=", clients?.length ?? 0, "products=", products?.length ?? 0);
+  }, [tab, sellers, clients, products]);
+
   // ── Derived stats ─────────────────────────────────────────────────────────
 
-  const totalSellers = sellers.length;
-  const totalClients = clients.length;
-  const totalProducts = products.length;
-  const activeProducts = products.filter(p => p.active).length;
-  const activeStoresCount = sellers.filter(s => s.approvalStatus === "approved" && !s.suspended && (s.subscription?.status === "active" || s.subscription?.status === "trial")).length;
-  const trialStores = sellers.filter(s => s.subscription?.status === "trial" && s.approvalStatus === "approved" && !s.suspended).length;
-  const suspendedStores = sellers.filter(s => s.approvalStatus === "suspended" || s.subscription?.status === "suspended" || s.subscription?.status === "expired").length;
-  const pendingApproval = sellers.filter(s => s.approvalStatus === "pending").length;
+  const safeS = sellers ?? [];
+  const safeC = clients ?? [];
+  const safeP = products ?? [];
+  const totalSellers = safeS.length;
+  const totalClients = safeC.length;
+  const totalProducts = safeP.length;
+  const activeProducts = safeP.filter(p => p?.active).length;
+  const activeStoresCount = safeS.filter(s => s?.approvalStatus === "approved" && !s?.suspended && (s?.subscription?.status === "active" || s?.subscription?.status === "trial")).length;
+  const trialStores = safeS.filter(s => s?.subscription?.status === "trial" && s?.approvalStatus === "approved" && !s?.suspended).length;
+  const suspendedStores = safeS.filter(s => s?.approvalStatus === "suspended" || s?.subscription?.status === "suspended" || s?.subscription?.status === "expired").length;
+  const pendingApproval = safeS.filter(s => s?.approvalStatus === "pending").length;
 
   // ── Filtered sellers ──────────────────────────────────────────────────────
 
-  const filteredSellers = sellers.filter(s => {
-    const q = sellerSearch.toLowerCase();
+  const filteredSellers = safeS.filter(s => {
+    if (!s) return false;
+    const q = (sellerSearch ?? "").toLowerCase();
     const matchSearch = !q || (s.name||"").toLowerCase().includes(q) || (s.storeName||"").toLowerCase().includes(q) || (s.email||"").toLowerCase().includes(q) || (s.cpf||"").includes(q);
     const matchStatus = sellerStatusFilter === "todos"
       || sellerStatusFilter === s.approvalStatus
@@ -476,17 +485,20 @@ function AdminDashboardInner() {
     return matchSearch && matchStatus;
   });
 
-  const filteredClients = clients.filter(c => {
-    const q = clientSearch.toLowerCase();
+  const filteredClients = safeC.filter(c => {
+    if (!c) return false;
+    const q = (clientSearch ?? "").toLowerCase();
     return !q || (c.name||"").toLowerCase().includes(q) || (c.email||"").toLowerCase().includes(q) || (c.phone||"").includes(q);
   });
 
-  const filteredProducts = products.filter(p => {
-    const q = productSearch.toLowerCase();
+  const filteredProducts = safeP.filter(p => {
+    if (!p) return false;
+    const q = (productSearch ?? "").toLowerCase();
     return !q || (p.name||"").toLowerCase().includes(q) || (p.storeName||"").toLowerCase().includes(q);
   });
 
-  const filteredSubs = sellers.filter(s => {
+  const filteredSubs = safeS.filter(s => {
+    if (!s) return false;
     const status = s.suspended ? "suspended" : (s.subscription?.status ?? "trial");
     return subStatusFilter === "todos" || status === subStatusFilter;
   });
@@ -714,7 +726,11 @@ function AdminDashboardInner() {
                 {/* Últimos cadastros */}
                 <div style={S.card}>
                   <div style={{ padding: "16px 20px", borderBottom: "1px solid #f0f0f0", fontWeight: 700, fontSize: "14px", color: "#1a1a1a" }}>🏪 Últimos comerciantes</div>
-                  {[...sellers].sort((a,b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime()).slice(0,5).map(s => {
+                  {[...(sellers ?? [])].sort((a,b) => {
+                    const ta = a?.registeredAt ? new Date(a.registeredAt).getTime() : 0;
+                    const tb = b?.registeredAt ? new Date(b.registeredAt).getTime() : 0;
+                    return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
+                  }).slice(0,5).map(s => {
                     const status = s.suspended ? "suspended" : (s.subscription?.status ?? "trial");
                     return (
                       <div key={s.id} style={{ padding: "12px 20px", borderBottom: "1px solid #f8f8f8", display: "flex", alignItems: "center", gap: "12px" }}>
@@ -736,10 +752,10 @@ function AdminDashboardInner() {
                   <div style={{ padding: "16px 20px", borderBottom: "1px solid #f0f0f0", fontWeight: 700, fontSize: "14px", color: "#1a1a1a" }}>💳 Status das assinaturas</div>
                   <div style={{ padding: "20px" }}>
                     {[
-                      { key: "trial",     label: "Período gratuito", count: sellers.filter(s => s.subscription?.status === "trial" && !s.suspended).length },
-                      { key: "active",    label: "Ativas",           count: sellers.filter(s => s.subscription?.status === "active" && !s.suspended).length },
-                      { key: "expired",   label: "Vencidas",         count: sellers.filter(s => s.subscription?.status === "expired" && !s.suspended).length },
-                      { key: "suspended", label: "Suspensas",        count: sellers.filter(s => s.suspended).length },
+                      { key: "trial",     label: "Período gratuito", count: safeS.filter(s => s?.subscription?.status === "trial" && !s?.suspended).length },
+                      { key: "active",    label: "Ativas",           count: safeS.filter(s => s?.subscription?.status === "active" && !s?.suspended).length },
+                      { key: "expired",   label: "Vencidas",         count: safeS.filter(s => s?.subscription?.status === "expired" && !s?.suspended).length },
+                      { key: "suspended", label: "Suspensas",        count: safeS.filter(s => s?.suspended).length },
                     ].map(item => {
                       const m = STATUS_META[item.key];
                       const pct = totalSellers > 0 ? Math.round((item.count / totalSellers) * 100) : 0;
@@ -972,8 +988,8 @@ function AdminDashboardInner() {
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "14px" }}>
                 {Object.entries(CATEGORY_META).map(([key, meta]) => {
-                  const count = sellers.filter(s => s.storeCategory === key).length;
-                  const prodCount = products.filter(p => p.category === key).length;
+                  const count = safeS.filter(s => s?.storeCategory === key).length;
+                  const prodCount = safeP.filter(p => p?.category === key).length;
                   return (
                     <div key={key} style={{ background: "white", borderRadius: "14px", padding: "20px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", gap: "10px" }}>
                       <div style={{ fontSize: "32px" }}>{meta.icon}</div>
@@ -1065,10 +1081,10 @@ function AdminDashboardInner() {
               {/* summary cards */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "12px", marginBottom: "20px" }}>
                 {[
-                  { key: "trial",     label: "Período gratuito", count: sellers.filter(s => s.subscription?.status === "trial" && !s.suspended).length },
-                  { key: "active",    label: "Ativas",           count: sellers.filter(s => s.subscription?.status === "active" && !s.suspended).length },
-                  { key: "expired",   label: "Vencidas",         count: sellers.filter(s => s.subscription?.status === "expired" && !s.suspended).length },
-                  { key: "suspended", label: "Suspensas",        count: sellers.filter(s => s.suspended).length },
+                  { key: "trial",     label: "Período gratuito", count: safeS.filter(s => s?.subscription?.status === "trial" && !s?.suspended).length },
+                  { key: "active",    label: "Ativas",           count: safeS.filter(s => s?.subscription?.status === "active" && !s?.suspended).length },
+                  { key: "expired",   label: "Vencidas",         count: safeS.filter(s => s?.subscription?.status === "expired" && !s?.suspended).length },
+                  { key: "suspended", label: "Suspensas",        count: safeS.filter(s => s?.suspended).length },
                 ].map(item => {
                   const m = STATUS_META[item.key];
                   return (
