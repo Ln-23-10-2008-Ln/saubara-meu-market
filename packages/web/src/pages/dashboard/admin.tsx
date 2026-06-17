@@ -76,18 +76,22 @@ type Tab = "dashboard" | "comerciantes" | "clientes" | "categorias" | "produtos"
 
 function storedToSeller(u: StoredUser): AdminSeller {
   const now = new Date().toISOString();
+  // Guard: registeredAt pode ser null/undefined vindo do Turso
+  const registeredAt = (u.registeredAt && u.registeredAt !== "null" && u.registeredAt !== "undefined")
+    ? u.registeredAt
+    : now;
   const trialEnd = u.subscription?.trialEndsAt || now;
   const expiresAt = u.subscription?.expiresAt || trialEnd;
   return {
     id: u.id,
-    name: u.name,
-    email: u.email,
+    name: u.name || "Sem nome",
+    email: u.email || "",
     phone: u.phone || "",
     cpf: u.cpf || "",
-    storeName: u.storeName || u.name,
+    storeName: u.storeName || u.name || "Sem nome",
     storeCategory: u.storeCategory || "",
     localidade: u.storeLocalidade || u.address?.localidade || "",
-    registeredAt: u.registeredAt || now,
+    registeredAt,
     subscription: {
       registeredAt: u.registeredAt || now,
       trialEndsAt: trialEnd,
@@ -106,13 +110,17 @@ function storedToSeller(u: StoredUser): AdminSeller {
 }
 
 function storedToClient(u: StoredUser): AdminClient {
+  const now = new Date().toISOString();
+  const registeredAt = (u.registeredAt && u.registeredAt !== "null" && u.registeredAt !== "undefined")
+    ? u.registeredAt
+    : now;
   return {
     id: u.id,
-    name: u.name,
-    email: u.email,
+    name: u.name || "Sem nome",
+    email: u.email || "",
     phone: u.phone || "",
-    localidade: u.address?.localidade || "",
-    registeredAt: u.registeredAt || new Date().toISOString(),
+    localidade: u.address?.localidade || u.storeLocalidade || "",
+    registeredAt,
   };
 }
 

@@ -1,4 +1,5 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState, Component } from "react";
+import type { ReactNode, ErrorInfo } from "react";
 import { Route, Switch } from "wouter";
 import { AuthProvider, useAuth } from "./lib/auth";
 import { CartProvider } from "./lib/cart";
@@ -9,6 +10,37 @@ import { Provider } from "./components/provider";
 import RequireAuth from "./components/RequireAuth";
 import { AgentFeedback, RunableBadge } from "@runablehq/website-runtime";
 import { SplashScreen, shouldShowSplash } from "./components/SplashScreen";
+
+// ─── ErrorBoundary global para rotas lazy (evita tela branca em crash) ───────
+class RouteErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  override componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[RouteErrorBoundary] Crash capturado:", error, info);
+    this.setState({ error });
+  }
+  override render() {
+    if (this.state.error) {
+      return (
+        <div style={{ minHeight: "100vh", background: "#1a1a2e", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "monospace" }}>
+          <div style={{ background: "#fee2e2", borderRadius: 16, padding: "28px 32px", maxWidth: 700, width: "100%" }}>
+            <h2 style={{ color: "#991b1b", margin: "0 0 12px", fontSize: 18 }}>❌ Erro ao carregar painel</h2>
+            <pre style={{ background: "#fff", borderRadius: 8, padding: 12, fontSize: 12, color: "#333", overflowX: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+              {this.state.error.toString()}
+            </pre>
+            <button onClick={() => { this.setState({ error: null }); window.location.reload(); }}
+              style={{ marginTop: 16, padding: "10px 20px", background: "#0f3460", color: "white", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 }}>
+              Recarregar
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ─── Componentes leves — carregados imediatamente (sempre visíveis) ────────────
 import FloatingCart from "./components/FloatingCart";
@@ -107,8 +139,14 @@ function AppInner({
               </RequireAuth>
             </Route>
 
-            {/* Admin com auth própria */}
-            <Route path="/admin" component={AdminDashboard} />
+            {/* Admin com auth própria — RouteErrorBoundary evita tela branca */}
+            <Route path="/admin">
+              {() => (
+                <RouteErrorBoundary>
+                  <AdminDashboard />
+                </RouteErrorBoundary>
+              )}
+            </Route>
             {/* G7: redirect legado /dashboard/admin → /admin */}
             <Route path="/dashboard/admin">
               {() => {

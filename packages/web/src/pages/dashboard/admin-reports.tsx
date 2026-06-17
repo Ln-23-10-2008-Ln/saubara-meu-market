@@ -34,7 +34,11 @@ function ptMonth(iso: string) {
 function bucketDates(dates: string[], period: Period): { label: string; count: number }[] {
   const from = cutoff(period);
   const filtered = dates
-    .filter((d) => new Date(d) >= from)
+    .filter((d) => {
+      if (!d) return false;
+      const t = new Date(d).getTime();
+      return !isNaN(t) && new Date(d) >= from;
+    })
     .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
   if (filtered.length === 0) return [];
@@ -218,29 +222,40 @@ function PeriodSelector({ value, onChange }: { value: Period; onChange: (p: Peri
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-export function AdminReports({ sellers, clients, products }: ReportsProps) {
+export function AdminReports({ sellers: sellersProp, clients: clientsProp, products: productsProp }: ReportsProps) {
+  // Guard: garante arrays mesmo se props chegarem undefined/null
+  const sellers  = sellersProp  ?? [];
+  const clients  = clientsProp  ?? [];
+  const products = productsProp ?? [];
+
   const [period, setPeriod] = useState<Period>("30d");
 
   const from = cutoff(period);
 
   // ── Filtered by period ──────────────────────────────────────────────────
-  const sellersInPeriod = useMemo(() => sellers.filter((s) => new Date(s.registeredAt) >= from), [sellers, period]);
-  const clientsInPeriod = useMemo(() => clients.filter((c) => new Date(c.registeredAt) >= from), [clients, period]);
+  const sellersInPeriod = useMemo(
+    () => sellers.filter((s) => s?.registeredAt && !isNaN(new Date(s.registeredAt).getTime()) && new Date(s.registeredAt) >= from),
+    [sellers, period]
+  );
+  const clientsInPeriod = useMemo(
+    () => clients.filter((c) => c?.registeredAt && !isNaN(new Date(c.registeredAt).getTime()) && new Date(c.registeredAt) >= from),
+    [clients, period]
+  );
 
   // ── KPIs (total, not filtered) ──────────────────────────────────────────
   const totalSellers = sellers.length;
   const totalClients = clients.length;
-  const approvedStores = sellers.filter((s) => s.approvalStatus === "approved" && !s.suspended).length;
-  const pendingStores = sellers.filter((s) => s.approvalStatus === "pending").length;
-  const suspendedStores = sellers.filter((s) => s.approvalStatus === "suspended" || s.suspended).length;
+  const approvedStores = sellers.filter((s) => s?.approvalStatus === "approved" && !s.suspended).length;
+  const pendingStores = sellers.filter((s) => s?.approvalStatus === "pending").length;
+  const suspendedStores = sellers.filter((s) => s?.approvalStatus === "suspended" || s?.suspended).length;
   const totalProducts = products.length;
-  const activeProducts = products.filter((p) => p.active).length;
-  const trialStores = sellers.filter((s) => s.subscription?.status === "trial" && !s.suspended).length;
-  const expiredStores = sellers.filter((s) => s.subscription?.status === "expired" && !s.suspended).length;
+  const activeProducts = products.filter((p) => p?.active).length;
+  const trialStores = sellers.filter((s) => s?.subscription?.status === "trial" && !s.suspended).length;
+  const expiredStores = sellers.filter((s) => s?.subscription?.status === "expired" && !s.suspended).length;
 
   // ── Growth charts ───────────────────────────────────────────────────────
-  const sellerDates = sellers.map((s) => s.registeredAt);
-  const clientDates = clients.map((c) => c.registeredAt);
+  const sellerDates = sellers.filter((s) => s?.registeredAt).map((s) => s.registeredAt);
+  const clientDates = clients.filter((c) => c?.registeredAt).map((c) => c.registeredAt);
   const sellerBuckets = useMemo(() => bucketDates(sellerDates, period), [sellers, period]);
   const clientBuckets = useMemo(() => bucketDates(clientDates, period), [clients, period]);
 
@@ -248,7 +263,8 @@ export function AdminReports({ sellers, clients, products }: ReportsProps) {
   const catCount = useMemo(() => {
     const map: Record<string, number> = {};
     for (const s of sellers) {
-      map[s.storeCategory] = (map[s.storeCategory] ?? 0) + 1;
+      const cat = s?.storeCategory || "outro";
+      map[cat] = (map[cat] ?? 0) + 1;
     }
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [sellers]);
@@ -257,8 +273,8 @@ export function AdminReports({ sellers, clients, products }: ReportsProps) {
   // ── Localidades ─────────────────────────────────────────────────────────
   const locCount = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const s of sellers) map[s.localidade] = (map[s.localidade] ?? 0) + 1;
-    for (const c of clients) map[c.localidade] = (map[c.localidade] ?? 0) + 1;
+    for (const s of sellers) { const k = s?.localidade || "Desconhecido"; map[k] = (map[k] ?? 0) + 1; }
+    for (const c of clients) { const k = c?.localidade || "Desconhecido"; map[k] = (map[k] ?? 0) + 1; }
     return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8);
   }, [sellers, clients]);
   const maxLoc = locCount[0]?.[1] ?? 1;
@@ -270,7 +286,7 @@ export function AdminReports({ sellers, clients, products }: ReportsProps) {
   // ── Subscription health ─────────────────────────────────────────────────
   const subHealth = [
     { key: "trial",     label: "Período gratuito", count: trialStores,     color: "#0369a1", bg: "#e0f2fe" },
-    { key: "approved",  label: "Lojas ativas",     count: approvedStores - trialStores,  color: "#2e7d32", bg: "#e8f5e9" },
+    { key: "approved",  label: "Lojas ativas",     count: Math.max(0, approvedStores - trialStores),  color: "#2e7d32", bg: "#e8f5e9" },
     { key: "expired",   label: "Vencidas",          count: expiredStores,   color: "#b45309", bg: "#fef3c7" },
     { key: "suspended", label: "Suspensas",         count: suspendedStores, color: "#c62828", bg: "#ffebee" },
     { key: "pending",   label: "Aguardando",        count: pendingStores,   color: "#7c3aed", bg: "#f3e5f5" },
@@ -279,7 +295,10 @@ export function AdminReports({ sellers, clients, products }: ReportsProps) {
   // ── Top products by category ────────────────────────────────────────────
   const prodCatCount = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const p of products) map[p.category] = (map[p.category] ?? 0) + 1;
+    for (const p of products) {
+      const cat = p?.category || "outro";
+      map[cat] = (map[cat] ?? 0) + 1;
+    }
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [products]);
   const maxProdCat = prodCatCount[0]?.[1] ?? 1;
@@ -287,15 +306,29 @@ export function AdminReports({ sellers, clients, products }: ReportsProps) {
   // ── Recent registrations table ──────────────────────────────────────────
   type RegEntry = { type: "seller" | "client"; name: string; sub?: string; date: string; localidade: string };
   const recentRegs: RegEntry[] = useMemo(() => {
+    const fallbackDate = new Date(0).toISOString();
     const list: RegEntry[] = [
       ...sellersInPeriod.slice(0, 5).map((s): RegEntry => ({
-        type: "seller", name: s.storeName, sub: s.name, date: s.registeredAt, localidade: s.localidade,
+        type: "seller",
+        name: s.storeName || s.name || "Sem nome",
+        sub: s.name,
+        date: s.registeredAt || fallbackDate,
+        localidade: s.localidade || "",
       })),
       ...clientsInPeriod.slice(0, 5).map((c): RegEntry => ({
-        type: "client", name: c.name, date: c.registeredAt, localidade: c.localidade,
+        type: "client",
+        name: c.name || "Sem nome",
+        date: c.registeredAt || fallbackDate,
+        localidade: c.localidade || "",
       })),
     ];
-    return list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10);
+    return list
+      .sort((a, b) => {
+        const ta = new Date(a.date).getTime();
+        const tb = new Date(b.date).getTime();
+        return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta);
+      })
+      .slice(0, 10);
   }, [sellersInPeriod, clientsInPeriod]);
 
   const tdS: React.CSSProperties = { padding: "10px 14px", fontSize: 12, borderBottom: "1px solid #f5f5f5", color: "#333" };
