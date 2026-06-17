@@ -235,8 +235,8 @@ export function AdminReports({ sellers, clients, products }: ReportsProps) {
   const suspendedStores = sellers.filter((s) => s.approvalStatus === "suspended" || s.suspended).length;
   const totalProducts = products.length;
   const activeProducts = products.filter((p) => p.active).length;
-  const trialStores = sellers.filter((s) => s.subscription.status === "trial" && !s.suspended).length;
-  const expiredStores = sellers.filter((s) => s.subscription.status === "expired" && !s.suspended).length;
+  const trialStores = sellers.filter((s) => s.subscription?.status === "trial" && !s.suspended).length;
+  const expiredStores = sellers.filter((s) => s.subscription?.status === "expired" && !s.suspended).length;
 
   // ── Growth charts ───────────────────────────────────────────────────────
   const sellerDates = sellers.map((s) => s.registeredAt);
