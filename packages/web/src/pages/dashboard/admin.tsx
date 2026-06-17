@@ -383,6 +383,11 @@ function AdminDashboardInner() {
     setOpenTickets(getTicketStats().aberto);
   }, [tab]); // refresh count whenever tab changes
 
+  // ── Debug breadcrumb (Railway) — MUST be before early returns (Rules of Hooks) ──
+  useEffect(() => {
+    console.log("[Admin] tab=", tab, "sellers=", sellers?.length, "clients=", clients?.length, "products=", products?.length);
+  }, [tab, sellers, clients, products]);
+
   // Aguardar verificação server-side antes de renderizar
   if (!authChecked) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0f172a" }}>
@@ -457,11 +462,6 @@ function AdminDashboardInner() {
   const safeS = sellers ?? [];
   const safeC = clients ?? [];
   const safeP = products ?? [];
-
-  // ── Debug breadcrumb (Railway) ──────────────────────────────────────────
-  useEffect(() => {
-    console.log("[Admin] tab=", tab, "safeS=", safeS.length, "safeC=", safeC.length, "safeP=", safeP.length);
-  }, [tab, sellers, clients, products]);
 
   // Helper para log inline no início de cada aba (debug Railway)
   const logTab = (name: string) => {
