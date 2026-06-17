@@ -93,17 +93,28 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           willChange: "transform, opacity",
         }}
       >
-        <img
-          src="/logo.png"
-          alt="Saubara Meu Market"
+        <div
           style={{
-            width: 80,
-            height: 80,
-            objectFit: "contain",
-            borderRadius: 16,
-            boxShadow: "0 8px 32px rgba(11,122,110,0.45)",
+            width: 110,
+            height: 110,
+            borderRadius: 30,
+            backgroundColor: "#fff",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.22)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
-        />
+        >
+          <img
+            src="/logo.png"
+            alt="Saubara Meu Market"
+            style={{
+              width: 90,
+              height: 90,
+              objectFit: "contain",
+            }}
+          />
+        </div>
         <div style={{ textAlign: "center" }}>
           <p
             style={{

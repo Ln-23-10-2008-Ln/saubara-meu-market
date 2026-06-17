@@ -116,7 +116,30 @@ export default function Home() {
 
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center gap-2 mr-1">
-            <img src="/logo.png" alt="Saubara Meu Market" className="w-9 h-9 object-contain rounded-lg" />
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 18,
+                backgroundColor: "#fff",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.18)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <img
+                src="/logo.png"
+                alt="Saubara Meu Market"
+                style={{
+                  width: 46,
+                  height: 46,
+                  objectFit: "contain",
+                  borderRadius: 12,
+                }}
+              />
+            </div>
             <div className="leading-none hidden xs:block sm:block">
               <p className="text-white font-bold text-sm leading-tight tracking-tight">Saubara</p>
               <p className="font-semibold text-[10px] leading-tight" style={{ color: "#A7DDD8" }}>Meu Market</p>
