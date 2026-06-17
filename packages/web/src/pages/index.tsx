@@ -114,11 +114,9 @@ export default function Home() {
         {/* ── Linha 1: logo + localização + botões de auth ─────────────────── */}
         <div className="flex items-center gap-2 px-4 pt-3 pb-2.5">
 
-          {/* Logo — ícone branco em fundo levemente escurecido */}
+          {/* Logo */}
           <div className="flex-shrink-0 flex items-center gap-2 mr-1">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#0F9D8A" }}>
-              <ShoppingBag className="w-5 h-5 text-white" />
-            </div>
+            <img src="/logo.png" alt="Saubara Meu Market" className="w-9 h-9 object-contain rounded-lg" />
             <div className="leading-none hidden xs:block sm:block">
               <p className="text-white font-bold text-sm leading-tight tracking-tight">Saubara</p>
               <p className="font-semibold text-[10px] leading-tight" style={{ color: "#A7DDD8" }}>Meu Market</p>

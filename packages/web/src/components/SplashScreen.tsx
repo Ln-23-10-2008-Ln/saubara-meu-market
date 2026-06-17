@@ -93,22 +93,17 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
           willChange: "transform, opacity",
         }}
       >
-        <div
+        <img
+          src="/logo.png"
+          alt="Saubara Meu Market"
           style={{
-            width: 72,
-            height: 72,
-            borderRadius: 20,
-            background: "linear-gradient(135deg, #0F9D8A 0%, #0B7A6E 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            width: 80,
+            height: 80,
+            objectFit: "contain",
+            borderRadius: 16,
             boxShadow: "0 8px 32px rgba(11,122,110,0.45)",
           }}
-        >
-          <ShoppingBag
-            style={{ width: 38, height: 38, color: "#fff", strokeWidth: 1.8 }}
-          />
-        </div>
+        />
         <div style={{ textAlign: "center" }}>
           <p
             style={{
