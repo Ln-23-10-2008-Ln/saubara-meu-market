@@ -13,7 +13,10 @@ import { uploadRoutes } from "./routes/upload-routes";
 import { sellerProducts } from "./routes/seller-product-routes";
 import { orderRoutes } from "./routes/order-routes";
 import { applySecurityHeaders, applyCORS } from "./middleware/security";
-import { libsql } from "./db/client";
+import { libsql, db } from "./db/client";
+import { users } from "./db/schema";
+import { eq } from "drizzle-orm";
+import { hashPasswordArgon2, generateId } from "./services/auth-service";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 
@@ -76,6 +79,47 @@ if (IS_PROD && existsSync(DIST)) {
   }
 }
 
+// ─── Ensure admin account exists with current PEPPER ─────────────────────────
+// Runs at startup: creates or re-hashes admin so login works regardless of PEPPER env var.
+async function ensureAdminAccount() {
+  const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@saubara.com";
+  const ADMIN_PASS  = process.env.ADMIN_PASSWORD ?? "admin2024";
+  const ADMIN_NAME  = "Admin Saubara";
+
+  try {
+    const existing = await db.select({ id: users.id, email: users.email }).from(users).where(eq(users.email, ADMIN_EMAIL)).get();
+    const newHash   = await hashPasswordArgon2(ADMIN_PASS);
+    const now       = new Date().toISOString();
+
+    if (existing) {
+      // Re-hash with current PEPPER (important for Railway where PEPPER may change)
+      await db.update(users)
+        .set({ password_hash: newHash, updated_at: now })
+        .where(eq(users.email, ADMIN_EMAIL));
+      console.log(`   Admin: ✅ re-hashed (${ADMIN_EMAIL})`);
+    } else {
+      // Create admin account
+      const adminId = generateId(21);
+      await db.insert(users).values({
+        id:             adminId,
+        name:           ADMIN_NAME,
+        email:          ADMIN_EMAIL,
+        password_hash:  newHash,
+        role:           "admin",
+        email_verified: true,
+        phone_verified: false,
+        can_sell:       true,
+        can_buy:        true,
+        created_at:     now,
+        updated_at:     now,
+      });
+      console.log(`   Admin: ✅ criado (${ADMIN_EMAIL})`);
+    }
+  } catch (err) {
+    console.warn(`   Admin: ⚠️ falha ao garantir conta — ${err}`);
+  }
+}
+
 // ─── Turso keep-alive (evita ECONNRESET em conexões idle) ────────────────────
 // Turso fecha conexões WebSocket ociosas após ~4 min.
 // Um ping a cada 3 min mantém a conexão viva e evita 500 no primeiro request.
@@ -90,6 +134,8 @@ setInterval(async () => {
 // ─── Start ────────────────────────────────────────────────────────────────────
 const port = parseInt(process.env.PORT ?? "3000", 10);
 console.log(`🌱 Saubara Meu Market — servidor na porta ${port}`);
+// Ensure admin at startup (non-blocking)
+ensureAdminAccount().catch(() => {});
 console.log(`   Ambiente: ${IS_PROD ? "produção" : "desenvolvimento"}`);
 console.log(`   Banco: ${process.env.TURSO_DATABASE_URL ? "✅ Turso conectado" : "❌ TURSO_DATABASE_URL ausente"}`);
 console.log(`   Email: ${process.env.RESEND_API_KEY ? "✅ Resend configurado" : "⚠️ modo simulado"}`);
