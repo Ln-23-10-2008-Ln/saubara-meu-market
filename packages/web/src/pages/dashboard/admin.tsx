@@ -633,6 +633,7 @@ function AdminDashboardInner() {
               {/* Real registered users stats — S2.3: Turso-first, localStorage fallback */}
               {(() => {
                 const stats = adminStats ?? getAdminUserStats();
+                const recentUsers = stats.recentUsers ?? [];
                 const sourceLabel = adminStats ? "dados do Turso" : "dados do localStorage";
                 const sourceBadge = adminStats
                   ? { color: "#0F9D8A", bg: "#e0f7f4" }
@@ -644,10 +645,10 @@ function AdminDashboardInner() {
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px", marginBottom: "18px" }}>
                       {[
-                        { label: "Total Clientes",          value: stats.totalClients,   icon: "🛒", color: "#6a1b9a", bg: "#f3e5f5" },
-                        { label: "Total Comerciantes",      value: stats.totalSellers,   icon: "🏪", color: "#1E88E5", bg: "#e3f2fd" },
-                        { label: "Contas Verificadas",      value: stats.totalVerified,  icon: "✅", color: "#2e7d32", bg: "#e8f5e9" },
-                        { label: "Pendentes de Verificação",value: stats.totalPending,   icon: "⏳", color: "#FF8A50", bg: "#fff8f5" },
+                        { label: "Total Clientes",          value: stats.totalClients   ?? 0, icon: "🛒", color: "#6a1b9a", bg: "#f3e5f5" },
+                        { label: "Total Comerciantes",      value: stats.totalSellers   ?? 0, icon: "🏪", color: "#1E88E5", bg: "#e3f2fd" },
+                        { label: "Contas Verificadas",      value: stats.totalVerified  ?? 0, icon: "✅", color: "#2e7d32", bg: "#e8f5e9" },
+                        { label: "Pendentes de Verificação",value: stats.totalPending   ?? 0, icon: "⏳", color: "#FF8A50", bg: "#fff8f5" },
                       ].map(k => (
                         <div key={k.label} style={{ background: "white", borderRadius: "14px", padding: "18px 16px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", borderLeft: `4px solid ${k.color}` }}>
                           <div style={{ width: "36px", height: "36px", background: k.bg, borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", marginBottom: "10px" }}>
@@ -660,13 +661,13 @@ function AdminDashboardInner() {
                     </div>
 
                     {/* Recent real registrations */}
-                    {stats.recentUsers.length > 0 && (
+                    {recentUsers.length > 0 && (
                       <div style={{ background: "white", borderRadius: "14px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", overflow: "hidden" }}>
                         <div style={{ padding: "14px 20px", borderBottom: "1px solid #f0f0f0", fontWeight: 700, fontSize: "13px", color: "#1a1a1a", display: "flex", alignItems: "center", gap: "8px" }}>
                           🕐 Últimos cadastros reais
                           <span style={{ fontSize: "11px", fontWeight: 400, color: sourceBadge.color, background: sourceBadge.bg, padding: "2px 8px", borderRadius: "20px", marginLeft: "6px" }}>— {sourceLabel}</span>
                         </div>
-                        {stats.recentUsers.map(u => (
+                        {recentUsers.map(u => (
                           <div key={u.id} style={{ padding: "11px 20px", borderBottom: "1px solid #f8f8f8", display: "flex", alignItems: "center", gap: "12px" }}>
                             <div style={{
                               width: "34px", height: "34px",

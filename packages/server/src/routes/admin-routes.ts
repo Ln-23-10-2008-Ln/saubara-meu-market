@@ -128,6 +128,8 @@ admin.post("/verify-token", async (c) => {
 admin.get("/stats", requireAdmin, async (c) => {
   const allUsers = await db.select({
     id:                  users.id,
+    name:                users.name,
+    email:               users.email,
     role:                users.role,
     email_verified:      users.email_verified,
     approval_status:     users.approval_status,
@@ -135,23 +137,45 @@ admin.get("/stats", requireAdmin, async (c) => {
     created_at:          users.created_at,
   }).from(users).all();
 
-  const sellers  = allUsers.filter(u => u.role === "seller");
-  const clients  = allUsers.filter(u => u.role === "client");
-  const pending  = sellers.filter(u => u.approval_status === "pending");
-  const approved = sellers.filter(u => u.approval_status === "approved");
+  const sellers   = allUsers.filter(u => u.role === "seller");
+  const clients   = allUsers.filter(u => u.role === "client");
+  const pending   = sellers.filter(u => u.approval_status === "pending");
+  const approved  = sellers.filter(u => u.approval_status === "approved");
+  const verified  = allUsers.filter(u => u.email_verified);
+  const unverified = allUsers.filter(u => !u.email_verified);
 
   const now      = new Date();
   const today    = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const newToday = allUsers.filter(u => new Date(u.created_at) >= today);
 
+  // recentUsers — últimos 10 cadastros, formato compatível com AdminUserStats
+  const recentUsers = [...allUsers]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 10)
+    .map(u => ({
+      id:             u.id,
+      name:           u.name,
+      email:          u.email,
+      type:           u.role === "seller" ? "seller" : "client",
+      emailVerified:  u.email_verified,
+      registeredAt:   u.created_at,
+      approvalStatus: u.approval_status,
+    }));
+
   const statsData = {
-    totalUsers:      allUsers.length,
-    totalSellers:    sellers.length,
+    // campos esperados por AdminUserStats (frontend)
     totalClients:    clients.length,
+    totalSellers:    sellers.length,
+    totalVerified:   verified.length,
+    totalPending:    pending.length,
+    totalUnverified: unverified.length,
+    recentUsers,
+    // campos extras de conveniência
+    totalUsers:      allUsers.length,
     pendingSellers:  pending.length,
     approvedSellers: approved.length,
     newToday:        newToday.length,
-    verifiedUsers:   allUsers.filter(u => u.email_verified).length,
+    verifiedUsers:   verified.length,
   };
 
   return c.json({ success: true, data: statsData, stats: statsData });
@@ -159,36 +183,12 @@ admin.get("/stats", requireAdmin, async (c) => {
 
 // ─── GET /api/admin/metrics (alias de /stats) ────────────────────────────────
 admin.get("/metrics", requireAdmin, async (c) => {
-  // Alias para compatibilidade
-  const allUsers = await db.select({
-    id:                  users.id,
-    role:                users.role,
-    email_verified:      users.email_verified,
-    approval_status:     users.approval_status,
-    subscription_status: users.subscription_status,
-    created_at:          users.created_at,
-  }).from(users).all();
-
-  const sellers  = allUsers.filter(u => u.role === "seller");
-  const clients  = allUsers.filter(u => u.role === "client");
-  const pending  = sellers.filter(u => u.approval_status === "pending");
-  const approved = sellers.filter(u => u.approval_status === "approved");
-
-  const now      = new Date();
-  const today    = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const newToday = allUsers.filter(u => new Date(u.created_at) >= today);
-
-  const statsData = {
-    totalUsers:      allUsers.length,
-    totalSellers:    sellers.length,
-    totalClients:    clients.length,
-    pendingSellers:  pending.length,
-    approvedSellers: approved.length,
-    newToday:        newToday.length,
-    verifiedUsers:   allUsers.filter(u => u.email_verified).length,
-  };
-
-  return c.json({ success: true, data: statsData });
+  // Redirecionar internamente para a mesma lógica de /stats
+  const res = await fetch(new URL("/api/admin/stats", c.req.url).toString(), {
+    headers: c.req.raw.headers,
+  });
+  const data = await res.json();
+  return c.json(data);
 });
 
 // ─── GET /api/admin/users ─────────────────────────────────────────────────────
