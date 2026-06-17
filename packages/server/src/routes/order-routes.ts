@@ -2,16 +2,16 @@
  * order-routes.ts — /api/orders
  * Turso-first order CRUD. Replaces localStorage smm_orders.
  *
- * POST   /api/orders               — criar pedido
- * GET    /api/orders               — listar (filtros: clientId, storeId, status)
- * GET    /api/orders/:id           — detalhe
- * PATCH  /api/orders/:id/status    — atualizar status
+ * POST   /api/orders               — criar pedido (autenticado)
+ * GET    /api/orders               — listar (cliente: apenas seus; admin: todos)
+ * GET    /api/orders/:id           — detalhe (dono ou admin)
+ * PATCH  /api/orders/:id/status    — atualizar status (autenticado)
  */
 import { Hono } from "hono";
 import { db } from "../db/client";
-import { orders, sessions, users } from "../db/schema";
+import { orders, stores, sessions, users } from "../db/schema";
 import { eq, desc } from "drizzle-orm";
-import { getCookie } from "hono/cookie";
+import { getUserFromSession } from "./auth-routes";
 
 const route = new Hono();
 
@@ -64,7 +64,15 @@ route.post("/", async (c) => {
 });
 
 // ─── GET /api/orders ──────────────────────────────────────────────────────────
+// Regras:
+//   - Não autenticado  → 401
+//   - role="admin"     → todos os pedidos
+//   - role="client"    → apenas pedidos cujo client_id === user.id
+//   - role="merchant"  → apenas pedidos cujo store_id pertence à loja do merchant
 route.get("/", async (c) => {
+  const user = await getUserFromSession(c);
+  if (!user) return c.json({ error: "Não autenticado." }, 401);
+
   try {
     const storeId  = c.req.query("storeId");
     const clientId = c.req.query("clientId");
@@ -74,9 +82,24 @@ route.get("/", async (c) => {
 
     let rows = await db.select().from(orders).orderBy(desc(orders.created_at));
 
-    if (storeId)  rows = rows.filter((o: any) => o.store_id  === storeId);
-    if (clientId) rows = rows.filter((o: any) => o.client_id === clientId);
-    if (status)   rows = rows.filter((o: any) => o.status    === status);
+    // Scope por role
+    if (user.role === "admin") {
+      // Admin vê tudo — aplica filtros opcionais
+      if (storeId)  rows = rows.filter((o: any) => o.store_id  === storeId);
+      if (clientId) rows = rows.filter((o: any) => o.client_id === clientId);
+    } else if (user.role === "seller" || user.role === "merchant") {
+      // Seller/merchant: busca sua loja pelo owner_id
+      const ownerStore = await db.select().from(stores).where(eq(stores.owner_id, user.id)).limit(1);
+      const myStoreId  = ownerStore[0]?.id ?? null;
+      if (!myStoreId) return c.json({ orders: [], total: 0, limit, offset });
+      rows = rows.filter((o: any) => o.store_id === myStoreId);
+    } else {
+      // Cliente vê apenas seus próprios pedidos
+      rows = rows.filter((o: any) => o.client_id === user.id);
+      if (clientId && clientId !== user.id) return c.json({ orders: [], total: 0, limit, offset });
+    }
+
+    if (status) rows = rows.filter((o: any) => o.status === status);
 
     const total  = rows.length;
     const paged  = rows.slice(offset, offset + limit);
@@ -95,12 +118,28 @@ route.get("/", async (c) => {
 
 // ─── GET /api/orders/:id ──────────────────────────────────────────────────────
 route.get("/:id", async (c) => {
+  const user = await getUserFromSession(c);
+  if (!user) return c.json({ error: "Não autenticado." }, 401);
+
   try {
     const id  = c.req.param("id");
     const row = await db.select().from(orders).where(eq(orders.id, id)).limit(1);
     if (!row.length) return c.json({ error: "Pedido não encontrado." }, 404);
 
     const o = row[0];
+
+    // Verificar permissão
+    const isAdmin = user.role === "admin";
+    const isOwner = o.client_id === user.id;
+    let isMerchant = false;
+    if (user.role === "seller" || user.role === "merchant") {
+      const ownerStore = await db.select().from(stores).where(eq(stores.owner_id, user.id)).limit(1);
+      isMerchant = ownerStore[0]?.id === o.store_id;
+    }
+    if (!isAdmin && !isOwner && !isMerchant) {
+      return c.json({ error: "Acesso negado." }, 403);
+    }
+
     return c.json({
       ...o,
       items: (() => { try { return JSON.parse(o.items_json); } catch { return []; } })(),
@@ -113,6 +152,9 @@ route.get("/:id", async (c) => {
 
 // ─── PATCH /api/orders/:id/status ────────────────────────────────────────────
 route.patch("/:id/status", async (c) => {
+  const user = await getUserFromSession(c);
+  if (!user) return c.json({ error: "Não autenticado." }, 401);
+
   try {
     const id   = c.req.param("id");
     const body = await c.req.json();

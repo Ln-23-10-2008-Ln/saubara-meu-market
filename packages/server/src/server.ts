@@ -48,6 +48,12 @@ app.route("/api/orders",          orderRoutes);
 
 // ─── Static assets (produção) ─────────────────────────────────────────────────
 if (IS_PROD && existsSync(DIST)) {
+  // Block source maps explicitly (defense-in-depth: build already has sourcemap:false)
+  app.use("*", async (c, next) => {
+    if (c.req.path.endsWith(".map")) return c.text("Not found", 404);
+    await next();
+  });
+
   app.use("/assets/*", serveStatic({ root: DIST }));
   app.use("/favicon.ico", serveStatic({ root: DIST }));
   app.use("/logo.svg",    serveStatic({ root: DIST }));
