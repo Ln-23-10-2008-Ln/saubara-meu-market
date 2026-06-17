@@ -452,16 +452,22 @@ function AdminDashboardInner() {
     setNoteModal({ open: false, mode: "reject", id: "" });
   };
 
-  // ── Debug breadcrumb (Railway) ──────────────────────────────────────────
-  useEffect(() => {
-    console.log("[Admin] tab=", tab, "sellers=", sellers?.length ?? 0, "clients=", clients?.length ?? 0, "products=", products?.length ?? 0);
-  }, [tab, sellers, clients, products]);
-
   // ── Derived stats ─────────────────────────────────────────────────────────
 
   const safeS = sellers ?? [];
   const safeC = clients ?? [];
   const safeP = products ?? [];
+
+  // ── Debug breadcrumb (Railway) ──────────────────────────────────────────
+  useEffect(() => {
+    console.log("[Admin] tab=", tab, "safeS=", safeS.length, "safeC=", safeC.length, "safeP=", safeP.length);
+  }, [tab, sellers, clients, products]);
+
+  // Helper para log inline no início de cada aba (debug Railway)
+  const logTab = (name: string) => {
+    console.log(`[Admin] renderizando aba: ${name} | safeS=${safeS.length} safeC=${safeC.length} safeP=${safeP.length}`);
+    return null;
+  };
   const totalSellers = safeS.length;
   const totalClients = safeC.length;
   const totalProducts = safeP.length;
@@ -623,6 +629,7 @@ function AdminDashboardInner() {
           {/* ════════════════════════ DASHBOARD ════════════════════════ */}
           {tab === "dashboard" && (
             <div>
+              {logTab("dashboard")}
               <div style={{ marginBottom: "24px" }}>
                 <h1 style={{ fontSize: "22px", fontWeight: 700, color: "#1a1a1a", margin: "0 0 4px" }}>Dashboard</h1>
                 <p style={{ fontSize: "13px", color: "#888", margin: 0 }}>Visão geral do marketplace</p>
@@ -792,10 +799,11 @@ function AdminDashboardInner() {
           {/* ════════════════════════ COMERCIANTES ════════════════════════ */}
           {tab === "comerciantes" && (
             <div>
+              {logTab("comerciantes")}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
                 <div>
                   <h1 style={{ fontSize: "20px", fontWeight: 700, color: "#1a1a1a", margin: "0 0 2px" }}>Comerciantes</h1>
-                  <p style={{ fontSize: "13px", color: "#888", margin: 0 }}>{sellers.length} cadastrados</p>
+                  <p style={{ fontSize: "13px", color: "#888", margin: 0 }}>{safeS.length} cadastrados</p>
                 </div>
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   <input placeholder="Buscar por nome, loja, CPF..." value={sellerSearch} onChange={e => setSellerSearch(e.target.value)} style={S.searchInput} />
@@ -930,10 +938,11 @@ function AdminDashboardInner() {
           {/* ════════════════════════ CLIENTES ════════════════════════ */}
           {tab === "clientes" && (
             <div>
+              {logTab("clientes")}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
                 <div>
                   <h1 style={{ fontSize: "20px", fontWeight: 700, color: "#1a1a1a", margin: "0 0 2px" }}>Clientes</h1>
-                  <p style={{ fontSize: "13px", color: "#888", margin: 0 }}>{clients.length} cadastrados</p>
+                  <p style={{ fontSize: "13px", color: "#888", margin: 0 }}>{safeC.length} cadastrados</p>
                 </div>
                 <input placeholder="Buscar por nome, e-mail ou telefone..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} style={{ ...S.searchInput, width: "280px" }} />
               </div>
@@ -981,6 +990,7 @@ function AdminDashboardInner() {
           {/* ════════════════════════ CATEGORIAS ════════════════════════ */}
           {tab === "categorias" && (
             <div>
+              {logTab("categorias")}
               <div style={{ marginBottom: "20px" }}>
                 <h1 style={{ fontSize: "20px", fontWeight: 700, color: "#1a1a1a", margin: "0 0 2px" }}>Categorias</h1>
                 <p style={{ fontSize: "13px", color: "#888", margin: 0 }}>Categorias do marketplace</p>
@@ -1014,10 +1024,11 @@ function AdminDashboardInner() {
           {/* ════════════════════════ PRODUTOS ════════════════════════ */}
           {tab === "produtos" && (
             <div>
+              {logTab("produtos")}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
                 <div>
                   <h1 style={{ fontSize: "20px", fontWeight: 700, color: "#1a1a1a", margin: "0 0 2px" }}>Produtos</h1>
-                  <p style={{ fontSize: "13px", color: "#888", margin: 0 }}>{products.length} cadastrados · {activeProducts} ativos</p>
+                  <p style={{ fontSize: "13px", color: "#888", margin: 0 }}>{safeP.length} cadastrados · {activeProducts} ativos</p>
                 </div>
                 <input placeholder="Buscar produto ou loja..." value={productSearch} onChange={e => setProductSearch(e.target.value)} style={{ ...S.searchInput, width: "260px" }} />
               </div>
@@ -1064,6 +1075,7 @@ function AdminDashboardInner() {
           {/* ════════════════════════ ASSINATURAS ════════════════════════ */}
           {tab === "assinaturas" && (
             <div>
+              {logTab("assinaturas")}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px", flexWrap: "wrap", gap: "12px" }}>
                 <div>
                   <h1 style={{ fontSize: "20px", fontWeight: 700, color: "#1a1a1a", margin: "0 0 2px" }}>Assinaturas</h1>
@@ -1159,12 +1171,16 @@ function AdminDashboardInner() {
 
           {/* ════════════════════════ RELATÓRIOS ════════════════════════ */}
           {tab === "relatorios" && (
-            <AdminReports sellers={sellers} clients={clients} products={products} />
+            <div>
+              {logTab("relatorios")}
+              <AdminReports sellers={safeS} clients={safeC} products={safeP} />
+            </div>
           )}
 
           {/* ════════════════════════ ATENDIMENTO ════════════════════════ */}
           {tab === "atendimento" && (
             <div>
+              {logTab("atendimento")}
               <div style={{ marginBottom: "20px" }}>
                 <h1 style={{ fontSize: "20px", fontWeight: 700, color: "#1a1a1a", margin: "0 0 2px" }}>Central de Atendimento</h1>
                 <p style={{ fontSize: "13px", color: "#888", margin: 0 }}>Gerencie reclamações, sugestões, denúncias e dúvidas</p>
@@ -1176,6 +1192,7 @@ function AdminDashboardInner() {
           {/* ════════════════════════ CONFIGURAÇÕES ════════════════════════ */}
           {tab === "configuracoes" && (
             <div>
+              {logTab("configuracoes")}
               <div style={{ marginBottom: "20px" }}>
                 <h1 style={{ fontSize: "20px", fontWeight: 700, color: "#1a1a1a", margin: "0 0 2px" }}>Configurações</h1>
                 <p style={{ fontSize: "13px", color: "#888", margin: 0 }}>Parâmetros gerais da plataforma</p>
@@ -1286,7 +1303,7 @@ function AdminDashboardInner() {
       )}
       {/* ── Photo Verification Modal ── */}
       {verifyOpen && (() => {
-        const seller = sellers.find(s => s.id === verifyOpen);
+        const seller = safeS.find(s => s.id === verifyOpen);
         if (!seller) return null;
         const checks = getChecks(verifyOpen);
         const allChecked = checks.every(Boolean);
