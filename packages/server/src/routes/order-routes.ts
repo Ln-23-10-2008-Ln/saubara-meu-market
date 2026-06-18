@@ -17,6 +17,14 @@ const route = new Hono();
 
 // ─── POST /api/orders ─────────────────────────────────────────────────────────
 route.post("/", async (c) => {
+  const user = await getUserFromSession(c);
+  if (!user) {
+    return c.json(
+      { error: "Authentication required" },
+      401
+    );
+  }
+
   try {
     const body = await c.req.json();
     const {
@@ -167,6 +175,19 @@ route.patch("/:id/status", async (c) => {
 
     const existing = await db.select().from(orders).where(eq(orders.id, id)).limit(1);
     if (!existing.length) return c.json({ error: "Pedido não encontrado." }, 404);
+
+    const o = existing[0];
+
+    // Verificar permissão: admin ou merchant da loja do pedido
+    const isAdmin = user.role === "admin";
+    let isMerchant = false;
+    if (user.role === "seller" || user.role === "merchant") {
+      const ownerStore = await db.select().from(stores).where(eq(stores.owner_id, user.id)).limit(1);
+      isMerchant = ownerStore[0]?.id === o.store_id;
+    }
+    if (!isAdmin && !isMerchant) {
+      return c.json({ error: "Acesso negado." }, 403);
+    }
 
     const now = new Date().toISOString();
     await db.update(orders).set({ status, updated_at: now }).where(eq(orders.id, id));
