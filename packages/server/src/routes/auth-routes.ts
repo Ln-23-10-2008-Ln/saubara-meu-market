@@ -120,7 +120,8 @@ auth.post("/login", rateLimit(10, 60_000), async (c) => {
   const ok = await verifyPasswordArgon2(password, user.password_hash);
   if (!ok) return c.json({ success: false, error: "Credenciais inválidas." }, 401);
 
-  if (!user.email_verified) {
+  // Only sellers need email verification
+  if (user.role === "seller" && !user.email_verified) {
     return c.json({ success: false, error: "E-mail não verificado.", requireVerify: true }, 403);
   }
 
@@ -224,8 +225,10 @@ auth.post("/register", rateLimit(5, 60_000), async (c) => {
     updated_at:                  now,
   });
 
-  // Send verify email
-  await sendVerifyEmail(email, name, verifyCode);
+  // Send verify email ONLY to sellers
+  if (role === "seller") {
+    await sendVerifyEmail(email, name, verifyCode);
+  }
 
   const newUser = await db.select().from(users).where(eq(users.id, id)).get();
   return c.json({ success: true, user: mapUser(newUser!), requireVerify: true }, 201);
