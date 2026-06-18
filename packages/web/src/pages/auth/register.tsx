@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { smartBack } from "../../lib/navigation";
 import { useAuth, UserType, LOCALIDADES, Localidade } from "../../lib/auth";
 import { IS_DEV_MODE } from "../../lib/devmode";
-import { uploadImageWithFallback } from "../../lib/upload";
+import { uploadImageWithFallback, type UploadType } from "../../lib/upload";
 
 // ─── CPF helpers ─────────────────────────────────────────────────────────────
 
@@ -51,9 +51,10 @@ interface PhotoFieldProps {
   value: string;
   onChange: (url: string) => void;
   accent?: string;
+  uploadType?: UploadType;
 }
 
-function PhotoField({ label, hint, required, value, onChange, accent = "#0F9D8A" }: PhotoFieldProps) {
+function PhotoField({ label, hint, required, value, onChange, accent = "#0F9D8A", uploadType = "store-logo" }: PhotoFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -62,7 +63,7 @@ function PhotoField({ label, hint, required, value, onChange, accent = "#0F9D8A"
     if (!file.type.startsWith("image/")) return;
     setUploading(true);
     try {
-      const { url } = await uploadImageWithFallback(file, "store-logo");
+      const { url } = await uploadImageWithFallback(file, uploadType);
       onChange(url);
     } finally {
       setUploading(false);
@@ -644,6 +645,7 @@ export default function RegisterPage() {
                   value={photoResponsavel}
                   onChange={setPhotoResponsavel}
                   accent="#FF8A50"
+                  uploadType="avatar"
                 />
                 <PhotoField
                   label="Logo da loja"
@@ -652,6 +654,7 @@ export default function RegisterPage() {
                   value={logoLoja}
                   onChange={setLogoLoja}
                   accent="#0F9D8A"
+                  uploadType="store-logo"
                 />
                 <PhotoField
                   label="Foto da fachada da empresa"
@@ -659,6 +662,7 @@ export default function RegisterPage() {
                   value={fotoFachada}
                   onChange={setFotoFachada}
                   accent="#7c3aed"
+                  uploadType="store-cover"
                 />
 
                 {/* Photo checklist summary */}
