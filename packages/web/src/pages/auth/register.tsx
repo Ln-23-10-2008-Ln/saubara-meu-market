@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { smartBack } from "../../lib/navigation";
 import { useAuth, UserType, LOCALIDADES, Localidade } from "../../lib/auth";
 import { IS_DEV_MODE } from "../../lib/devmode";
+import { uploadImageWithFallback } from "../../lib/upload";
 
 // ─── CPF helpers ─────────────────────────────────────────────────────────────
 
@@ -41,17 +42,6 @@ const CATEGORIES = [
   { value: "servicos", label: "Serviços", icon: "🔧" },
 ];
 
-// ─── Photo upload helper ──────────────────────────────────────────────────────
-
-function readFileAsBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
 // ─── Photo Upload Field ───────────────────────────────────────────────────────
 
 interface PhotoFieldProps {
@@ -59,18 +49,24 @@ interface PhotoFieldProps {
   hint: string;
   required?: boolean;
   value: string;
-  onChange: (base64: string) => void;
+  onChange: (url: string) => void;
   accent?: string;
 }
 
 function PhotoField({ label, hint, required, value, onChange, accent = "#0F9D8A" }: PhotoFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   async function handleFile(file: File) {
     if (!file.type.startsWith("image/")) return;
-    const b64 = await readFileAsBase64(file);
-    onChange(b64);
+    setUploading(true);
+    try {
+      const { url } = await uploadImageWithFallback(file, "store-logo");
+      onChange(url);
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
@@ -98,7 +94,7 @@ function PhotoField({ label, hint, required, value, onChange, accent = "#0F9D8A"
         </div>
       ) : (
         <div
-          onClick={() => inputRef.current?.click()}
+          onClick={() => !uploading && inputRef.current?.click()}
           onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
           onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
@@ -107,14 +103,15 @@ function PhotoField({ label, hint, required, value, onChange, accent = "#0F9D8A"
             borderRadius: "12px",
             padding: "24px 16px",
             textAlign: "center",
-            cursor: "pointer",
+            cursor: uploading ? "wait" : "pointer",
             background: dragging ? `${accent}08` : "#fafafa",
             transition: "all 0.2s",
+            opacity: uploading ? 0.7 : 1,
           }}
         >
-          <div style={{ fontSize: "28px", marginBottom: "8px" }}>📷</div>
+          <div style={{ fontSize: "28px", marginBottom: "8px" }}>{uploading ? "⏳" : "📷"}</div>
           <div style={{ fontSize: "12px", fontWeight: 600, color: "#555", marginBottom: "4px" }}>
-            Clique para selecionar ou arraste aqui
+            {uploading ? "Enviando..." : "Clique para selecionar ou arraste aqui"}
           </div>
           <div style={{ fontSize: "11px", color: "#aaa" }}>JPG, PNG, WEBP — máx. 5MB</div>
         </div>

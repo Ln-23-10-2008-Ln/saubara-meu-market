@@ -5,6 +5,7 @@ import { useFavorites } from "../../lib/favorites";
 import { resolveStores } from "../../lib/store-resolver";
 import { useOrders, ORDER_STATUS_LABEL } from "../../lib/orders";
 import { useNotifications } from "../../lib/notifications";
+import { uploadImageWithFallback } from "../../lib/upload";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -51,16 +52,16 @@ export default function ClientDashboard() {
   const totalOrders = clientOrders.length;
   const totalSpent = clientOrders.filter(o => o.status !== "cancelled").reduce((s, o) => s + o.total, 0);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      setAvatarPreview(result);
-      updateUser({ avatar: result });
-    };
-    reader.readAsDataURL(file);
+    try {
+      const { url } = await uploadImageWithFallback(file, "store-logo");
+      setAvatarPreview(url);
+      updateUser({ avatar: url });
+    } catch (err) {
+      console.error("[AVATAR] Upload falhou:", err);
+    }
   };
 
   const handleSave = () => {
