@@ -110,7 +110,7 @@ export const orders = sqliteTable("orders", {
   id:            text("id").primaryKey(),
   client_id:     text("client_id").references(() => users.id, { onDelete: "set null" }),
   client_name:   text("client_name"),
-  store_id:      text("store_id").notNull(),
+  store_id:      text("store_id").notNull().references(() => stores.id),
   store_name:    text("store_name"),
   store_whatsapp: text("store_whatsapp"),
   items_json:    text("items_json").notNull(),    // JSON serializado de OrderItem[]
