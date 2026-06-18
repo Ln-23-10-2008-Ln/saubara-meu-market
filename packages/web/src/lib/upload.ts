@@ -8,7 +8,7 @@
  *   const url = await uploadImage(file, "store-cover");
  */
 
-export type UploadType = "product" | "store-logo" | "store-cover";
+export type UploadType = "product" | "store-logo" | "store-cover" | "avatar";
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];

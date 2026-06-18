@@ -115,7 +115,7 @@ uploadRoutes.post("/presign", async (c) => {
   }
 
   // Build key
-  const validTypes = new Set(["product", "store-logo", "store-cover"]);
+  const validTypes = new Set(["product", "store-logo", "store-cover", "avatar"]);
   const resolvedType = validTypes.has(uploadType ?? "") ? (uploadType as string) : "product";
   const key = generateKey(resolvedType, extFromMime(mime));
 

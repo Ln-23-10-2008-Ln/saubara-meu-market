@@ -56,7 +56,7 @@ export default function ClientDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const { url } = await uploadImageWithFallback(file, "store-logo");
+      const { url } = await uploadImageWithFallback(file, "avatar");
       setAvatarPreview(url);
       updateUser({ avatar: url });
     } catch (err) {
