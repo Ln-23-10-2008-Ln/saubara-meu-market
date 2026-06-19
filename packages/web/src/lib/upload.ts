@@ -142,8 +142,14 @@ export async function uploadImageWithFallback(
     const url = await uploadImage(file, uploadType);
     return { url, isLocal: false };
   } catch (err) {
-    if (err instanceof UploadError && err.code === "S3_NOT_CONFIGURED") {
-      console.warn("[UPLOAD] R2 não configurado — usando base64 local (dev only)");
+    if (err instanceof UploadError && (
+      err.code === "S3_NOT_CONFIGURED" ||
+      err.code === "AUTH_REQUIRED"
+    )) {
+      // S3_NOT_CONFIGURED: R2 não configurado (esperado sem env vars)
+      // AUTH_REQUIRED: usuário não autenticado (ex: formulário de cadastro pré-login)
+      // Em ambos os casos usa base64 local como fallback
+      console.warn(`[UPLOAD] fallback base64 (${err.code})`);
       const url = await fileToDataUrl(file);
       return { url, isLocal: true };
     }

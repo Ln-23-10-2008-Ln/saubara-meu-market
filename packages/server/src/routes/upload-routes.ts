@@ -81,13 +81,14 @@ uploadRoutes.post("/presign", async (c) => {
     return c.json({ success: false, error: "Sessão expirada. Faça login novamente." }, 401);
   }
 
-  // Verificar saúde do storage antes de aceitar upload
+  // Verificar saúde do storage — se não configurado, retorna S3_NOT_CONFIGURED
+  // para que o frontend possa fazer fallback para base64 local
   const health = await checkStorageHealth();
   if (!health.configured) {
     return c.json({
       success: false,
-      error: "Serviço de upload temporariamente indisponível. Tente novamente mais tarde.",
-      code: "STORAGE_UNAVAILABLE",
+      error: "Armazenamento de imagens não configurado. Usando fallback local.",
+      code: "S3_NOT_CONFIGURED",
     }, 503);
   }
 
