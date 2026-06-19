@@ -65,6 +65,16 @@ function PhotoField({ label, hint, required, value, onChange, accent = "#0F9D8A"
     try {
       const { url } = await uploadImageWithFallback(file, uploadType);
       onChange(url);
+    } catch (err) {
+      console.error("[PhotoField] upload falhou — tentando base64 direto:", err);
+      // último recurso: base64 direto sem passar pelo backend
+      try {
+        const { fileToDataUrl } = await import("../../lib/upload");
+        const url = await fileToDataUrl(file);
+        onChange(url);
+      } catch (e2) {
+        console.error("[PhotoField] base64 também falhou:", e2);
+      }
     } finally {
       setUploading(false);
     }

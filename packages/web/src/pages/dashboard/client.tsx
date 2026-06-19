@@ -60,7 +60,15 @@ export default function ClientDashboard() {
       setAvatarPreview(url);
       updateUser({ avatar: url });
     } catch (err) {
-      console.error("[AVATAR] Upload falhou:", err);
+      console.error("[AVATAR] upload falhou — tentando base64 direto:", err);
+      try {
+        const { fileToDataUrl } = await import("../../lib/upload");
+        const url = await fileToDataUrl(file);
+        setAvatarPreview(url);
+        updateUser({ avatar: url });
+      } catch (e2) {
+        console.error("[AVATAR] base64 também falhou:", e2);
+      }
     }
   };
 
