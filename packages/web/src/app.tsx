@@ -66,7 +66,6 @@ const ForgotPasswordPage  = lazy(() => import("./pages/auth/forgot-password"));
 const ClientDashboard     = lazy(() => import("./pages/dashboard/client"));
 const SellerDashboard     = lazy(() => import("./pages/dashboard/seller"));
 const AdminDashboard      = lazy(() => import("./pages/dashboard/admin"));
-const UploadTest          = lazy(() => import("./pages/upload-test"));
 
 // ─── Loading fallback simples ─────────────────────────────────────────────────
 function PageLoader() {
@@ -139,9 +138,6 @@ function AppInner({
                 <SellerDashboard />
               </RequireAuth>
             </Route>
-
-            {/* ── Upload Test (temp) ── */}
-            <Route path="/upload-test" component={UploadTest} />
 
             {/* Admin com auth própria — RouteErrorBoundary evita tela branca */}
             <Route path="/admin">
