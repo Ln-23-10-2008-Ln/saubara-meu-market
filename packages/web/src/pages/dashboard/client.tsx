@@ -5,7 +5,7 @@ import { useFavorites } from "../../lib/favorites";
 import { resolveStores } from "../../lib/store-resolver";
 import { useOrders, ORDER_STATUS_LABEL } from "../../lib/orders";
 import { useNotifications } from "../../lib/notifications";
-import { uploadImageWithFallback } from "../../lib/upload";
+import { uploadImageWithFallback, fileToDataUrl } from "../../lib/upload";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -59,15 +59,13 @@ export default function ClientDashboard() {
       const { url } = await uploadImageWithFallback(file, "avatar");
       setAvatarPreview(url);
       updateUser({ avatar: url });
-    } catch (err) {
-      console.error("[AVATAR] upload falhou — tentando base64 direto:", err);
+    } catch (_err) {
       try {
-        const { fileToDataUrl } = await import("../../lib/upload");
         const url = await fileToDataUrl(file);
         setAvatarPreview(url);
         updateUser({ avatar: url });
-      } catch (e2) {
-        console.error("[AVATAR] base64 também falhou:", e2);
+      } catch (_e2) {
+        // silenciar: base64 não pode falhar em browser normal
       }
     }
   };

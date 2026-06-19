@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { smartBack } from "../../lib/navigation";
 import { useAuth, UserType, LOCALIDADES, Localidade } from "../../lib/auth";
 import { IS_DEV_MODE } from "../../lib/devmode";
-import { uploadImageWithFallback, type UploadType } from "../../lib/upload";
+import { uploadImageWithFallback, fileToDataUrl, type UploadType } from "../../lib/upload";
 
 // ─── CPF helpers ─────────────────────────────────────────────────────────────
 
@@ -65,15 +65,13 @@ function PhotoField({ label, hint, required, value, onChange, accent = "#0F9D8A"
     try {
       const { url } = await uploadImageWithFallback(file, uploadType);
       onChange(url);
-    } catch (err) {
-      console.error("[PhotoField] upload falhou — tentando base64 direto:", err);
-      // último recurso: base64 direto sem passar pelo backend
+    } catch (_err) {
+      // qualquer falha no upload: base64 inline direto, sem depender de backend
       try {
-        const { fileToDataUrl } = await import("../../lib/upload");
         const url = await fileToDataUrl(file);
         onChange(url);
-      } catch (e2) {
-        console.error("[PhotoField] base64 também falhou:", e2);
+      } catch (_e2) {
+        // silenciar apenas se base64 também falhar (impossível em browser normal)
       }
     } finally {
       setUploading(false);
