@@ -120,7 +120,8 @@ auth.post("/login", rateLimit(10, 60_000), async (c) => {
   const ok = await verifyPasswordArgon2(password, user.password_hash);
   if (!ok) return c.json({ success: false, error: "Credenciais inválidas." }, 401);
 
-  if (!user.email_verified) {
+  // Only sellers require email verification — clients login directly
+  if (!user.email_verified && user.role === "seller") {
     return c.json({ success: false, error: "E-mail não verificado.", requireVerify: true }, 403);
   }
 
@@ -197,11 +198,12 @@ auth.post("/register", rateLimit(5, 60_000), async (c) => {
     phone:                       phone ?? null,
     role,
     password_hash:               passwordHash,
-    email_verified:              false,
+    // clients are auto-verified — no email confirmation required
+    email_verified:              role === "client" ? true : false,
     phone_verified:              false,
     verify_method:               "email",
-    verify_code:                 verifyCode,
-    verify_code_expires:         verifyExpiry,
+    verify_code:                 role === "client" ? null : verifyCode,
+    verify_code_expires:         role === "client" ? null : verifyExpiry,
     can_sell:                    role === "seller",
     can_buy:                     role === "client",
     approval_status:             role === "seller" ? "pending" : null,
@@ -224,11 +226,23 @@ auth.post("/register", rateLimit(5, 60_000), async (c) => {
     updated_at:                  now,
   });
 
-  // Send verify email
-  await sendVerifyEmail(email, name, verifyCode);
+  // Send verify email only for sellers
+  if (role === "seller") {
+    await sendVerifyEmail(email, name, verifyCode);
+  }
 
   const newUser = await db.select().from(users).where(eq(users.id, id)).get();
-  return c.json({ success: true, user: mapUser(newUser!), requireVerify: true }, 201);
+  const requireVerify = role === "seller";
+
+  // For clients: auto-login immediately after register
+  if (role === "client") {
+    const sessionId = generateId(32);
+    const expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1000).toISOString();
+    await db.insert(sessions).values({ id: sessionId, user_id: id, expires_at: expiresAt, created_at: now });
+    setSessionCookie(c, sessionId);
+  }
+
+  return c.json({ success: true, user: mapUser(newUser!), requireVerify }, 201);
 });
 
 // ─── POST /api/auth/logout ────────────────────────────────────────────────────

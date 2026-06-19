@@ -190,7 +190,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   login: (emailOrPhone: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>;
+  register: (data: RegisterData) => Promise<{ success: boolean; error?: string; requireVerify?: boolean }>;
   verifyAccount: (code: string) => Promise<{ success: boolean; error?: string }>;
   resendVerifyCode: () => Promise<void>;
   logout: () => void;
@@ -672,7 +672,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (
     data: RegisterData
-  ): Promise<{ success: boolean; error?: string }> => {
+  ): Promise<{ success: boolean; error?: string; requireVerify?: boolean }> => {
 
     // Validações locais rápidas
     if (!data.cpf) return { success: false, error: "CPF é obrigatório para cadastro." };
@@ -696,7 +696,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         _localDualWrite(data, cpfClean, backendResult.user);
         saveSession(backendResult.user);
       }
-      return { success: true };
+      // requireVerify: true only for sellers
+      const requireVerify = data.type === "seller";
+      return { success: true, requireVerify };
     }
 
     // 2. Fallback localStorage (backend offline)

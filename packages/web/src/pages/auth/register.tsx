@@ -246,7 +246,12 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (res.success) {
-      navigate("/auth/verify");
+      if (res.requireVerify) {
+        navigate("/auth/verify");
+      } else {
+        // client: auto-verified, go straight to dashboard
+        navigate("/dashboard/client");
+      }
     } else {
       setError(res.error || "Erro ao cadastrar.");
     }
