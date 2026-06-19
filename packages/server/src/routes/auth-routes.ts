@@ -227,8 +227,16 @@ auth.post("/register", rateLimit(5, 60_000), async (c) => {
   });
 
   // Send verify email only for sellers
+  let emailSent = false;
+  let emailSimulated = false;
   if (role === "seller") {
-    await sendVerifyEmail(email, name, verifyCode);
+    const emailResult = await sendVerifyEmail(email, name, verifyCode);
+    emailSent = emailResult.success;
+    emailSimulated = !!(emailResult.simulated);
+    if (!emailResult.success) {
+      console.error(`[register] Falha ao enviar email para ${email}: ${emailResult.error}`);
+      // Don't block registration — user can request resend later
+    }
   }
 
   const newUser = await db.select().from(users).where(eq(users.id, id)).get();
@@ -242,7 +250,15 @@ auth.post("/register", rateLimit(5, 60_000), async (c) => {
     setSessionCookie(c, sessionId);
   }
 
-  return c.json({ success: true, user: mapUser(newUser!), requireVerify }, 201);
+  return c.json({
+    success: true,
+    user: mapUser(newUser!),
+    requireVerify,
+    emailSent,
+    emailSimulated,
+    // If email failed (prod), frontend should show a message to contact support
+    emailError: (role === "seller" && !emailSent && !emailSimulated) ? "Não foi possível enviar o email de verificação. Entre em contato com o suporte ou tente reenviar." : undefined,
+  }, 201);
 });
 
 // ─── POST /api/auth/logout ────────────────────────────────────────────────────

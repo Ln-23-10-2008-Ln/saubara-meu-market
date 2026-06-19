@@ -36,8 +36,12 @@ app.use("*", async (c, next) => {
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 app.get("/api/health", (c) => {
-  const emailConfigured = !!(process.env.RESEND_API_KEY);
-  return c.json({ status: "ok", emailConfigured });
+  const hasKey = !!(process.env.RESEND_API_KEY);
+  const domainConfigured = !!(process.env.RESEND_FROM_DOMAIN);
+  // emailConfigured = true only when both key AND domain are set
+  // Note: domain verification on Resend dashboard is external and cannot be checked here
+  const emailConfigured = hasKey && domainConfigured;
+  return c.json({ status: "ok", emailConfigured, emailDetails: { hasApiKey: hasKey, hasDomain: domainConfigured } });
 });
 
 // ─── API Routes ───────────────────────────────────────────────────────────────

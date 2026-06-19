@@ -190,7 +190,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   login: (emailOrPhone: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (data: RegisterData) => Promise<{ success: boolean; error?: string; requireVerify?: boolean }>;
+  register: (data: RegisterData) => Promise<{ success: boolean; error?: string; requireVerify?: boolean; emailError?: string }>;
   verifyAccount: (code: string) => Promise<{ success: boolean; error?: string }>;
   resendVerifyCode: () => Promise<void>;
   logout: () => void;
@@ -483,6 +483,7 @@ async function backendRegister(data: RegisterData): Promise<{
   success: boolean;
   user?: AuthUser;
   error?: string;
+  emailError?: string;
 } | null> {
   try {
     const res = await fetch("/api/auth/register", {
@@ -493,9 +494,10 @@ async function backendRegister(data: RegisterData): Promise<{
     });
     const json = await res.json() as Record<string, unknown>;
     return {
-      success: Boolean(json.success),
-      user:    json.user ? mapBackendUser(json.user as Record<string, unknown>) : undefined,
-      error:   json.error as string | undefined,
+      success:    Boolean(json.success),
+      user:       json.user ? mapBackendUser(json.user as Record<string, unknown>) : undefined,
+      error:      json.error as string | undefined,
+      emailError: json.emailError as string | undefined,
     };
   } catch {
     return null;
@@ -672,7 +674,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (
     data: RegisterData
-  ): Promise<{ success: boolean; error?: string; requireVerify?: boolean }> => {
+  ): Promise<{ success: boolean; error?: string; requireVerify?: boolean; emailError?: string }> => {
 
     // Validações locais rápidas
     if (!data.cpf) return { success: false, error: "CPF é obrigatório para cadastro." };
@@ -698,7 +700,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       // requireVerify: true only for sellers
       const requireVerify = data.type === "seller";
-      return { success: true, requireVerify };
+      return { success: true, requireVerify, emailError: backendResult.emailError };
     }
 
     // 2. Fallback localStorage (backend offline)

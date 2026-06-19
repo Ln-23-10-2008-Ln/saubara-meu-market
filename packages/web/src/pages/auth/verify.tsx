@@ -9,7 +9,7 @@ import { IS_DEV_MODE, DEV_VERIFY_CODE } from "../../lib/devmode";
 const IS_EMAIL_REAL = import.meta.env.VITE_EMAIL_CONFIGURED === "true";
 
 export default function VerifyPage() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { user, verifyAccount, resendVerifyCode, logout } = useAuth();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [method, setMethod] = useState<"sms" | "email">("email");
@@ -18,6 +18,9 @@ export default function VerifyPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Check if email failed to send (emailError=1 in query string)
+  const emailDeliveryFailed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("emailError") === "1";
 
   // Redirect if user is not pending verification
   useEffect(() => {
@@ -193,6 +196,28 @@ export default function VerifyPage() {
               <div style={{ fontWeight: 700, fontSize: "13px", color: "#2E7D32" }}>E-mail enviado com sucesso</div>
               <p style={{ fontSize: "12px", color: "#388E3C", margin: "3px 0 0", lineHeight: 1.5 }}>
                 Verifique sua caixa de entrada e a pasta de spam. O código expira em 10 minutos.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Email delivery failure banner ────────────────────── */}
+        {emailDeliveryFailed && !IS_DEV_MODE && (
+          <div style={{
+            background: "#FFF3CD",
+            border: "1.5px solid #FF9800",
+            borderRadius: "14px",
+            padding: "12px 16px",
+            marginBottom: "16px",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "10px",
+          }}>
+            <span style={{ fontSize: "20px", flexShrink: 0 }}>⚠️</span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: "13px", color: "#7A4F00" }}>Problema no envio do e-mail</div>
+              <p style={{ fontSize: "12px", color: "#7A4F00", margin: "3px 0 0", lineHeight: 1.5 }}>
+                Não foi possível enviar o código de verificação. Clique em <strong>"Reenviar código"</strong> abaixo ou entre em contato com o suporte.
               </p>
             </div>
           </div>

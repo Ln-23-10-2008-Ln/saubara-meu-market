@@ -247,7 +247,12 @@ export default function RegisterPage() {
 
     if (res.success) {
       if (res.requireVerify) {
-        navigate("/auth/verify");
+        // If email failed to send, show a warning on verify page via state
+        if (res.emailError) {
+          navigate("/auth/verify?emailError=1");
+        } else {
+          navigate("/auth/verify");
+        }
       } else {
         // client: auto-verified, go straight to dashboard
         navigate("/dashboard/client");
