@@ -517,7 +517,7 @@ async function backendLogout(): Promise<void> {
 /**
  * POST /api/auth/verify-email
  */
-async function backendVerifyEmail(code: string): Promise<{
+async function backendVerifyEmail(email: string, code: string): Promise<{
   success: boolean;
   user?: AuthUser;
   error?: string;
@@ -527,7 +527,7 @@ async function backendVerifyEmail(code: string): Promise<{
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ email, code }),
     });
     const data = await res.json() as Record<string, unknown>;
     return {
@@ -543,11 +543,13 @@ async function backendVerifyEmail(code: string): Promise<{
 /**
  * POST /api/auth/resend-verify
  */
-async function backendResendVerify(): Promise<boolean> {
+async function backendResendVerify(email: string): Promise<boolean> {
   try {
     const res = await fetch("/api/auth/resend-verify", {
       method: "POST",
       credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
     });
     const data = await res.json() as { success: boolean };
     return Boolean(data.success);
@@ -801,7 +803,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Sessão backend ativa
     if (user._backendSession) {
-      const result = await backendVerifyEmail(code);
+      const result = await backendVerifyEmail(user.email, code);
       if (result === null) {
         // Rede offline — tenta fallback abaixo
       } else {
@@ -850,7 +852,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
 
     if (user._backendSession) {
-      const ok = await backendResendVerify();
+      const ok = await backendResendVerify(user.email);
       if (ok) return;
       // Fallback: gera código local se backend falhou
     }
