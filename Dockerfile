@@ -16,8 +16,8 @@ RUN bun install --frozen-lockfile
 # Copiar código fonte
 COPY . .
 
-# Build do frontend (garante que o dist/ em produção é gerado aqui)
-RUN bun run build
+# Build do frontend em modo produção (MODE="production", IS_DEV_MODE=false)
+RUN cd packages/web && bun run vite build --mode production
 
 # Expor porta
 EXPOSE 3000

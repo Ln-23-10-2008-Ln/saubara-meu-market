@@ -37,8 +37,8 @@ async function apiSendVerifyEmail(email: string, name: string, code: string): Pr
       body: JSON.stringify({ email, name, code }),
     });
     const data = await res.json() as { success: boolean; simulated?: boolean; error?: string };
-    if (data.simulated) {
-      console.log(`[SANDBOX] E-mail de verificação simulado para ${email} — código: ${code}`);
+    if (data.simulated && IS_DEV_MODE) {
+      console.log(`[DEV] E-mail de verificação simulado para ${email} — código: ${code}`);
     } else if (!data.success) {
       console.error("[EMAIL] Falha no envio de verificação:", data.error);
     }
@@ -55,8 +55,8 @@ async function apiSendResetEmail(email: string, name: string, code: string): Pro
       body: JSON.stringify({ email, name, code }),
     });
     const data = await res.json() as { success: boolean; simulated?: boolean; error?: string };
-    if (data.simulated) {
-      console.log(`[SANDBOX] E-mail de recuperação simulado para ${email} — código: ${code}`);
+    if (data.simulated && IS_DEV_MODE) {
+      console.log(`[DEV] E-mail de recuperação simulado para ${email} — código: ${code}`);
     } else if (!data.success) {
       console.error("[EMAIL] Falha no envio de reset:", data.error);
     }
@@ -639,7 +639,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let passwordOk = false;
     if (found.passwordSalt === "__DEMO__") {
-      passwordOk = IS_DEV_MODE && password === "123456";
+      // Contas demo só funcionam em ambiente de desenvolvimento local
+      passwordOk = IS_DEV_MODE && password.length >= 6;
     } else if (found.passwordSalt === "__BACKEND__") {
       // Conta dual-write — a senha real está no Turso; não temos como verificar offline
       return { success: false, error: "Serviço temporariamente indisponível. Tente novamente." };

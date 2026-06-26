@@ -2,27 +2,24 @@
 /**
  * ─── Saubara Meu Market — Dev Mode / Sandbox ────────────────────────────────
  *
- * Controla o comportamento de autenticação e notificações durante desenvolvimento.
+ * IS_DEV_MODE é determinado exclusivamente por import.meta.env.MODE:
+ *   - "development" → dev server local (vite)
+ *   - "production"  → vite build (Railway, Dockerfile, CI)
  *
- * Para ativar modo produção com envio real:
- *   1. Defina VITE_APP_ENV=production no arquivo .env da raiz do projeto
- *   2. Implemente os providers reais abaixo (sendSmsCode, sendEmailCode, sendWhatsAppCode)
- *   3. A UI de verificação se adapta automaticamente — sem alterações de componentes
- *
- * Providers disponíveis para integração futura:
- *   - SMS:      Twilio / Zenvia / TotalVoice
- *   - E-mail:   Resend / SendGrid / AWS SES
- *   - WhatsApp: Twilio WhatsApp API / Z-API / Evolution API
+ * NÃO depende de VITE_APP_ENV — o Vite define MODE automaticamente.
+ * Em produção, todo código dentro de `if (IS_DEV_MODE)` é eliminado
+ * pelo tree-shaking do Rollup.
  * ────────────────────────────────────────────────────────────────────────────
  */
 
 // ── Detecção de ambiente ────────────────────────────────────────────────────
-export const IS_DEV_MODE =
-  import.meta.env.MODE === "development" ||
-  import.meta.env.VITE_APP_ENV !== "production";
+// import.meta.env.MODE é injetado pelo Vite:
+//   vite dev   → "development"
+//   vite build → "production"
+export const IS_DEV_MODE = import.meta.env.MODE === "development";
 
-/** Código fixo para testes em modo sandbox */
-export const DEV_VERIFY_CODE = "123456";
+/** Código fixo para testes em modo sandbox — nunca chega ao bundle de produção */
+export const DEV_VERIFY_CODE = IS_DEV_MODE ? "123456" : "";
 
 /** Retorna true quando qualquer código deve ser aceito sem validação real */
 export const isDevMode = () => IS_DEV_MODE;
@@ -62,7 +59,7 @@ export async function sendWhatsAppCode(phone: string, code: string): Promise<voi
   throw new Error("WhatsApp provider não configurado.");
 }
 
-/** Valida código — em dev aceita DEV_VERIFY_CODE ou qualquer 6 dígitos */
+/** Valida código — em dev aceita qualquer 6 dígitos; em prod exige correspondência exata */
 export function validateCode(input: string, _expected?: string): boolean {
   if (IS_DEV_MODE) return input.length === 6;
   return input === _expected;
