@@ -8,7 +8,7 @@
  * - If seller with approvalStatus "suspended": show block screen
  * - Otherwise: render children
  */
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Redirect } from "wouter";
 import { useAuth } from "../lib/auth";
 
@@ -22,8 +22,16 @@ interface RequireAuthProps {
 
 export default function RequireAuth({ children, type, allowUnverified = false }: RequireAuthProps) {
   const { user, loading } = useAuth();
+  // Grace period de 350ms para permitir propagação do state após navigate pós-cadastro.
+  // Sem isso, o componente monta antes do React propagar o novo user do AuthProvider,
+  // causando redirect prematuro para /auth/login em <5ms.
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSettled(true), 350);
+    return () => clearTimeout(t);
+  }, []);
 
-  if (loading) {
+  if (loading || !settled) {
     return (
       <div style={{
         minHeight: "100vh",

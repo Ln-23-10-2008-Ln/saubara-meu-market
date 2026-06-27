@@ -17,15 +17,26 @@ export default function VerifyPage() {
   const [resentCountdown, setResentCountdown] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // Grace period: aguarda 300ms após mount antes de redirecionar
+  // Evita race condition quando navigate("/auth/verify") é chamado logo após saveSession:
+  // o novo componente pode montar antes do React propagar o novo state do AuthProvider
+  const [settled, setSettled] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Check if email failed to send (emailError=1 in query string)
   const emailDeliveryFailed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("emailError") === "1";
 
+  // Grace period: aguarda hidratação do contexto React após navigate pós-cadastro
+  useEffect(() => {
+    const timer = setTimeout(() => setSettled(true), 350);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Redirect if user is not pending verification
   // Aguarda hidratação do contexto de auth antes de redirecionar
   useEffect(() => {
-    if (authLoading) return; // ainda carregando sessão — não redirecionar ainda
+    if (!settled) return;       // ainda no grace period — não redirecionar
+    if (authLoading) return;    // ainda carregando sessão
     if (!user) {
       navigate("/auth/login");
       return;
@@ -34,7 +45,7 @@ export default function VerifyPage() {
       // Already verified — go to dashboard
       navigate(user.type === "seller" ? "/dashboard/seller" : "/dashboard/client");
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, settled]);
 
   // Resend countdown
   useEffect(() => {
