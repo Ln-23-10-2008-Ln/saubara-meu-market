@@ -10,7 +10,7 @@ const IS_EMAIL_REAL = import.meta.env.VITE_EMAIL_CONFIGURED === "true";
 
 export default function VerifyPage() {
   const [location, navigate] = useLocation();
-  const { user, verifyAccount, resendVerifyCode, logout } = useAuth();
+  const { user, loading: authLoading, verifyAccount, resendVerifyCode, logout } = useAuth();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [method, setMethod] = useState<"sms" | "email">("email");
   const [resent, setResent] = useState(false);
@@ -23,7 +23,9 @@ export default function VerifyPage() {
   const emailDeliveryFailed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("emailError") === "1";
 
   // Redirect if user is not pending verification
+  // Aguarda hidratação do contexto de auth antes de redirecionar
   useEffect(() => {
+    if (authLoading) return; // ainda carregando sessão — não redirecionar ainda
     if (!user) {
       navigate("/auth/login");
       return;
@@ -32,7 +34,7 @@ export default function VerifyPage() {
       // Already verified — go to dashboard
       navigate(user.type === "seller" ? "/dashboard/seller" : "/dashboard/client");
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   // Resend countdown
   useEffect(() => {
@@ -117,6 +119,24 @@ export default function VerifyPage() {
   const maskedEmail = user?.email
     ? user.email.replace(/(.{2}).+(@.+)/, "$1***$2")
     : "seu e-mail";
+
+  // Exibe spinner enquanto a sessão ainda está sendo carregada
+  // Evita redirect prematuro para /auth/login antes do contexto hidratar
+  if (authLoading) {
+    return (
+      <div style={{
+        fontFamily: "'Poppins', system-ui, sans-serif",
+        minHeight: "100vh",
+        background: "linear-gradient(135deg, #0F9D8A 0%, #0B7A6E 100%)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}>
+        <div style={{ textAlign: "center", color: "white" }}>
+          <div style={{ fontSize: "32px", marginBottom: "12px" }}>✉️</div>
+          <p style={{ fontSize: "14px", opacity: 0.85 }}>Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
